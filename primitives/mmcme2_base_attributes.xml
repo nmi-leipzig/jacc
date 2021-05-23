@@ -1,6 +1,6 @@
 
 
-<fpga_primitive name="mmcme2_base" >
+<fpga_primitive type="Mmcme2Base">
     
     <target_fpgas>
         
@@ -12,28 +12,9 @@
     
     <attributes>
         
-        <primitive_attribute>
-            <attribute_type>ListAttribute</attribute_type>
-            <name></name>
-            <default></default>
-            <values>
-                <value></value>
-            </values>
-        </primitive_attribute>
-                        
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
-            <name></name>
-            <default></default>
-            <step_size></step_size>
-            <start></start>
-            <end></end>
-        </primitive_attribute>
-        
-        <primitive_attribute>
-            <attribute_type>ListAttribute</attribute_type>
-            <name>bandwith</name>
-            <type>str</type>
+        <primitive_attribute type="ListAttribute" name="bandwidth">
+            <name>bandwidth</name>
+            <num_type>str</num_type>
             <default>OPTIMIZED</default>
             <values>
                 <value>OPTIMIZED</value>
@@ -41,241 +22,212 @@
                 <value>LOW</value>
             </values>
         </primitive_attribute>
-        
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+
+        <primitive_attribute type="RangeAttribute" name="clkfbout_phase">
+            <name>clkfbout_phase</name>
+            <num_type>float</num_type>
+            <default>0.000</default>
+            <significant_digits>3</significant_digits>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+
+        <primitive_attribute type="RangeAttribute" name="clkfbout_mult_f">
             <name>clkfbout_mult_f</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>5.000</default>
-            <step_size>0.001</step_size> <!-- needs to be overlooked -->
+            <significant_digits>3</significant_digits>
             <start>2.000</start>
             <end>64.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
-            <name>clkfbout_phase</name>
-            <type>float</type>
-            <default>0.000</default>
-            <step_size>0.001</step_size> <!-- needs to be overlooked -->
-            <start>-360.000</start>
-            <end>360.000</end>
-        </primitive_attribute>
-        
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkin1_period">
             <name>clkin1_period</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size> <!-- needs to be overlooked -->
+            <significant_digits>3</significant_digits>
             <start>0.000</start>
             <end>100.000</end>
         </primitive_attribute>
-        
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+
+        <primitive_attribute type="RangeAttribute" name="clkout0_divide_f">
             <name>clkout0_divide_f</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>1.000</default>
-            <step_size>0.001</step_size> <!-- needs to be overlooked -->
+            <significant_digits>3</significant_digits>
             <start>1.000</start>
             <end>128.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout1_divide">
             <name>clkout1_divide</name>
-            <type>int</type>
+            <num_type>int</num_type>
             <default>1</default>
-            <step_size>1</step_size>
             <start>1</start>
             <end>128</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout2_divide">
             <name>clkout2_divide</name>
-            <type>int</type>
+            <num_type>int</num_type>
             <default>1</default>
-            <step_size>1</step_size>
             <start>1</start>
             <end>128</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout3_divide">
             <name>clkout3_divide</name>
-            <type>int</type>
+            <num_type>int</num_type>
             <default>1</default>
-            <step_size>1</step_size>
             <start>1</start>
             <end>128</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout4_divide">
             <name>clkout4_divide</name>
-            <type>int</type>
+            <num_type>int</num_type>
             <default>1</default>
-            <step_size>1</step_size>
             <start>1</start>
             <end>128</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout5_divide">
             <name>clkout5_divide</name>
-            <type>int</type>
+            <num_type>int</num_type>
             <default>1</default>
-            <step_size>1</step_size>
             <start>1</start>
             <end>128</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout0_duty_cycle">
             <name>clkout0_duty_cycle</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.500</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.001</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout1_duty_cycle">
             <name>clkout1_duty_cycle</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.500</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.001</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout2_duty_cycle">
             <name>clkout2_duty_cycle</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.500</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.001</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout3_duty_cycle">
             <name>clkout3_duty_cycle</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.500</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.001</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout4_duty_cycle">
             <name>clkout4_duty_cycle</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.500</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.001</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout5_duty_cycle">
             <name>clkout5_duty_cycle</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.500</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.001</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout6_duty_cycle">
             <name>clkout6_duty_cycle</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.500</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.001</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout0_phase">
             <name>clkout0_phase</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>-360.000</start>
             <end>360.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout1_phase">
             <name>clkout1_phase</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>-360.000</start>
             <end>360.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout2_phase">
             <name>clkout2_phase</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>-360.000</start>
             <end>360.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout3_phase">
             <name>clkout3_phase</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>-360.000</start>
             <end>360.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout4_phase">
             <name>clkout4_phase</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>-360.000</start>
             <end>360.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout5_phase">
             <name>clkout5_phase</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>-360.000</start>
             <end>360.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="clkout6_phase">
             <name>clkout6_phase</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.000</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>-360.000</start>
             <end>360.000</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>ListAttribute</attribute_type>
+        <primitive_attribute type="ListAttribute" name="clkout4_cascade">
             <name>clkout4_cascade</name>
-            <type>str</type>
+            <num_type>str</num_type>
             <default>FALSE</default>
             <values>
                 <value>TRUE</value>
@@ -283,30 +235,26 @@
             </values>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="divclk_divide">
             <name>divclk_divide</name>
-            <type>int</type>
+            <num_type>int</num_type>
             <default>1</default>
-            <step_size>1</step_size>
             <start>1</start>
             <end>106</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>RangeAttribute</attribute_type>
+        <primitive_attribute type="RangeAttribute" name="ref_jitter1">
             <name>ref_jitter1</name>
-            <type>float</type>
+            <num_type>float</num_type>
             <default>0.010</default>
-            <step_size>0.001</step_size>
+            <significant_digits>3</significant_digits>
             <start>0.000</start>
             <end>0.999</end>
         </primitive_attribute>
         
-        <primitive_attribute>
-            <attribute_type>ListAttribute</attribute_type>
+        <primitive_attribute type="ListAttribute" name="startup_wait">
             <name>startup_wait</name>
-            <type>str</type>
+            <num_type>str</num_type>
             <default>FALSE</default>
             <values>
                 <value>TRUE</value>
