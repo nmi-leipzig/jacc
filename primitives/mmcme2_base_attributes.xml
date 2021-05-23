@@ -1,0 +1,380 @@
+
+
+<fpga_primitive name="mmcme2_base" >
+    
+    <target_fpgas>
+        
+        <fpga_model>Artix-7</fpga_model>
+        <fpga_model>Kintex-7</fpga_model>
+        <fpga_model>Virtex-7</fpga_model>
+        
+    </target_fpgas>
+    
+    <attributes>
+        
+        <primitive_attribute>
+            <attribute_type>ListAttribute</attribute_type>
+            <name></name>
+            <default></default>
+            <values>
+                <value></value>
+            </values>
+        </primitive_attribute>
+                        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name></name>
+            <default></default>
+            <step_size></step_size>
+            <start></start>
+            <end></end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>ListAttribute</attribute_type>
+            <name>bandwith</name>
+            <type>str</type>
+            <default>OPTIMIZED</default>
+            <values>
+                <value>OPTIMIZED</value>
+                <value>HIGH</value>
+                <value>LOW</value>
+            </values>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkfbout_mult_f</name>
+            <type>float</type>
+            <default>5.000</default>
+            <step_size>0.001</step_size> <!-- needs to be overlooked -->
+            <start>2.000</start>
+            <end>64.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkfbout_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size> <!-- needs to be overlooked -->
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkin1_period</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size> <!-- needs to be overlooked -->
+            <start>0.000</start>
+            <end>100.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout0_divide_f</name>
+            <type>float</type>
+            <default>1.000</default>
+            <step_size>0.001</step_size> <!-- needs to be overlooked -->
+            <start>1.000</start>
+            <end>128.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout1_divide</name>
+            <type>int</type>
+            <default>1</default>
+            <step_size>1</step_size>
+            <start>1</start>
+            <end>128</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout2_divide</name>
+            <type>int</type>
+            <default>1</default>
+            <step_size>1</step_size>
+            <start>1</start>
+            <end>128</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout3_divide</name>
+            <type>int</type>
+            <default>1</default>
+            <step_size>1</step_size>
+            <start>1</start>
+            <end>128</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout4_divide</name>
+            <type>int</type>
+            <default>1</default>
+            <step_size>1</step_size>
+            <start>1</start>
+            <end>128</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout5_divide</name>
+            <type>int</type>
+            <default>1</default>
+            <step_size>1</step_size>
+            <start>1</start>
+            <end>128</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout0_duty_cycle</name>
+            <type>float</type>
+            <default>0.500</default>
+            <step_size>0.001</step_size>
+            <start>0.001</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout1_duty_cycle</name>
+            <type>float</type>
+            <default>0.500</default>
+            <step_size>0.001</step_size>
+            <start>0.001</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout2_duty_cycle</name>
+            <type>float</type>
+            <default>0.500</default>
+            <step_size>0.001</step_size>
+            <start>0.001</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout3_duty_cycle</name>
+            <type>float</type>
+            <default>0.500</default>
+            <step_size>0.001</step_size>
+            <start>0.001</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout4_duty_cycle</name>
+            <type>float</type>
+            <default>0.500</default>
+            <step_size>0.001</step_size>
+            <start>0.001</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout5_duty_cycle</name>
+            <type>float</type>
+            <default>0.500</default>
+            <step_size>0.001</step_size>
+            <start>0.001</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout6_duty_cycle</name>
+            <type>float</type>
+            <default>0.500</default>
+            <step_size>0.001</step_size>
+            <start>0.001</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout0_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout1_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout2_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout3_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout4_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout5_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>clkout6_phase</name>
+            <type>float</type>
+            <default>0.000</default>
+            <step_size>0.001</step_size>
+            <start>-360.000</start>
+            <end>360.000</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>ListAttribute</attribute_type>
+            <name>clkout4_cascade</name>
+            <type>str</type>
+            <default>FALSE</default>
+            <values>
+                <value>TRUE</value>
+                <value>FALSE</value>
+            </values>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>divclk_divide</name>
+            <type>int</type>
+            <default>1</default>
+            <step_size>1</step_size>
+            <start>1</start>
+            <end>106</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>RangeAttribute</attribute_type>
+            <name>ref_jitter1</name>
+            <type>float</type>
+            <default>0.010</default>
+            <step_size>0.001</step_size>
+            <start>0.000</start>
+            <end>0.999</end>
+        </primitive_attribute>
+        
+        <primitive_attribute>
+            <attribute_type>ListAttribute</attribute_type>
+            <name>startup_wait</name>
+            <type>str</type>
+            <default>FALSE</default>
+            <values>
+                <value>TRUE</value>
+                <value>FALSE</value>
+            </values>
+        </primitive_attribute>
+        
+    </attributes>
+            
+    
+    <template>MMCME2_BASE#(
+        .BANDWIDTH(//replace//), // Jitter programming (OPTIMIZED,HIGH,LOW)
+        .CLKFBOUT_MULT_F(//replace//), // Multiply value for all CLKOUT (2.000-64.000).
+        .CLKFBOUT_PHASE(//replace//), // Phase offset in degrees of CLKFB (-360.000-360.000).
+        .CLKIN1_PERIOD(//replace//), // Input clock period in ns to ps resolution (i.e.33.333is30MHz).
+        // CLKOUT0_DIVIDE - CLKOUT6_DIVIDE : Divide amount for each CLKOUT (1-128)
+        .CLKOUT1_DIVIDE(//replace//),
+        .CLKOUT2_DIVIDE(//replace//),
+        .CLKOUT3_DIVIDE(//replace//),
+        .CLKOUT4_DIVIDE(//replace//),
+        .CLKOUT5_DIVIDE(//replace//),
+        .CLKOUT6_DIVIDE(//replace//),
+        .CLKOUT0_DIVIDE_F(//replace//), // Divide amount for CLKOUT0 (1.000-128.000).
+        // CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for each CLKOUT (0.01-0.99).
+        .CLKOUT0_DUTY_CYCLE(//replace//),
+        .CLKOUT1_DUTY_CYCLE(//replace//),
+        .CLKOUT2_DUTY_CYCLE(//replace//),
+        .CLKOUT3_DUTY_CYCLE(//replace//),
+        .CLKOUT4_DUTY_CYCLE(//replace//),
+        .CLKOUT5_DUTY_CYCLE(//replace//),
+        .CLKOUT6_DUTY_CYCLE(//replace//),
+        // CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for each CLKOUT (-360.000-360.000).
+        .CLKOUT0_PHASE(//replace//),
+        .CLKOUT1_PHASE(//replace//),
+        .CLKOUT2_PHASE(//replace//),
+        .CLKOUT3_PHASE(//replace//),
+        .CLKOUT4_PHASE(//replace//),
+        .CLKOUT5_PHASE(//replace//),
+        .CLKOUT6_PHASE(//replace//),
+        .CLKOUT4_CASCADE(//replace//), // Cascase CLKOUT4 counter with CLKOUT6 (FALSE,TRUE)
+        .DIVCLK_DIVIDE(//replace//), // Master division value (1-106)
+        .REF_JITTER1(//replace//), // Reference input jitter in UI (0.000-0.999).
+        .STARTUP_WAIT(//replace//) // Delays DONE until MMCM is locked (FALSE,TRUE)
+        )
+        MMCME2_BASE_inst(
+        // ClockOutputs: 1-bit (each) output: User configurable clock outputs
+        .CLKOUT0(CLKOUT0), // 1-bit output: CLKOUT0
+        .CLKOUT0B(CLKOUT0B), // 1-bit output: Inverted CLKOUT0
+        .CLKOUT1(CLKOUT1), // 1-bit output: CLKOUT1
+        .CLKOUT1B(CLKOUT1B), // 1-bit output: Inverted CLKOUT1
+        .CLKOUT2(CLKOUT2), // 1-bit output: CLKOUT2
+        .CLKOUT2B(CLKOUT2B), // 1-bit output: Inverted CLKOUT2
+        .CLKOUT3(CLKOUT3), // 1-bit output: CLKOUT3
+        .CLKOUT3B(CLKOUT3B), // 1-bit output: Inverted CLKOUT3
+        .CLKOUT4(CLKOUT4), // 1-bit output: CLKOUT4
+        .CLKOUT5(CLKOUT5), // 1-bit output: CLKOUT5
+        .CLKOUT6(CLKOUT6), // 1-bit output: CLKOUT6
+        // Feedback Clocks: 1-bit (each) output: Clock feedback ports
+        .CLKFBOUT(CLKFBOUT), // 1-bit output: Feedback clock
+        .CLKFBOUTB(CLKFBOUTB), // 1-bit output: Inverted CLKFBOUT
+        // Status Ports: 1-bit (each) output: MMCM status ports
+        .LOCKED(LOCKED), // 1-bit output: LOCK
+        // Clock Inputs: 1-bit (each) input: Clock input
+        .CLKIN1(CLKIN1), // 1-bit input: Clock
+        // Control Ports: 1-bit (each) input: MMCM control ports
+        .PWRDWN(PWRDWN), // 1-bit input: Power-down
+        .RST(RST), // 1-bit input: Reset
+        // Feedback Clocks: 1-bit (each) input: Clock feedback ports
+        .CLKFBIN(CLKFBIN) // 1-bit input: Feedback clock
+        );</template>
+</fpga_primitive>
