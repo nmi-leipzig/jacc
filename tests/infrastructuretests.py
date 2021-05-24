@@ -113,7 +113,3 @@ class FPGAModelTest(unittest.TestCase):
     def test_dummy_model_value_verification(self):
         self.assertTrue(self.dummy_model.validate_mmcm_input_frequency(55))
         self.assertFalse(self.dummy_model.validate_pll_vco(799))
-
-
-if __name__ == '__main__':
-    unittest.main()
