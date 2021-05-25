@@ -1,25 +1,7 @@
 import unittest
-import pathlib
+from pathtests import paths
 
 from fpgaobjects import FPGAModel, PrimitiveAttribute, Primitive, check_significant_digits
-
-
-paths = {"dummy_fpga.xml": pathlib.Path(__file__).parent.joinpath("fpga_models", "dummy_fpga.xml"),
-         "mmcme2_base_attributes.xml": pathlib.Path(__file__).parent.joinpath("primitives", "mmcme2_base_attributes.xml")}
-
-
-# This test case checks if all necessary files are available
-class PathTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.file_dict = {key: open(value) for key,value in paths.items()}
-
-    def tearDown(self) -> None:
-        for key in self.file_dict:
-            self.file_dict[key].close()
-
-    def test_paths(self):
-        for key in self.file_dict:
-            self.assertTrue(self.file_dict[key].readable())
 
 
 # Test Cases for the PrimitiveAttribute classes (and others that inherit from PrimitiveAttribute)
@@ -27,11 +9,6 @@ class PrimitiveAttributeTest(unittest.TestCase):
     def setUp(self) -> None:
         pass
 
-    def test_significant_digit_check(self):
-        self.assertTrue(check_significant_digits(1.2300000001, 3))
-        self.assertTrue(check_significant_digits(136.00000001, 3))
-        self.assertFalse(check_significant_digits(135.1110, 4))
-        self.assertFalse(check_significant_digits(1.111, 2))
 
     def test_range_attribute(self):
         attribute = PrimitiveAttribute.from_xml("<primitive_attribute type=\"RangeAttribute\">\

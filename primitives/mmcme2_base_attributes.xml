@@ -45,7 +45,7 @@
             <name>clkin1_period</name>
             <num_type>float</num_type>
             <default>0.000</default>
-            <significant_digits>3</significant_digits>
+            <significant_digits>5</significant_digits>
             <start>0.000</start>
             <end>100.000</end>
         </primitive_attribute>

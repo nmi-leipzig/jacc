@@ -33,3 +33,11 @@ def check_significant_digits(number: float, significant_digits: int):
 
     # Return "True" only if the maximum amount of significant digits was not reached
     return not count > significant_digits
+
+
+def convert_period_to_frequency(period: float, input_unit: str = "ns", output_unit: str = "MHz"):
+    pass
+
+
+def convert_frequency_to_period(frequency: float, input_unit: str = "MHz", output_unit: str = "ns"):
+    pass
