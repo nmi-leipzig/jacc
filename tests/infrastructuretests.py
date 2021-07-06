@@ -1,45 +1,29 @@
 import unittest
 from pathtests import paths
+from fpga_globals import get_clock_attributes
+from fpgaobjects import FPGAModel
 
-from fpgaobjects import FPGAModel, PrimitiveAttribute, Primitive, check_significant_digits
 
-
-# Test Cases for the PrimitiveAttribute classes (and others that inherit from PrimitiveAttribute)
+# Test Cases for the ClockAttribute classes (and others that inherit from ClockAttribute)
 class PrimitiveAttributeTest(unittest.TestCase):
     def setUp(self) -> None:
-        pass
-
+        self.temp_dict_pll = get_clock_attributes("Plle2Base")
+        self.temp_dict_mmcm = get_clock_attributes("Mmcme2Base")
 
     def test_range_attribute(self):
-        attribute = PrimitiveAttribute.from_xml("<primitive_attribute type=\"RangeAttribute\">\
-            <name>clkfbout_mult_f</name>\
-            <num_type>float</num_type>\
-            <default>5.000</default>\
-            <significant_digits>3</significant_digits>\
-            <start>2.000</start>\
-            <end>64.000</end>\
-        </primitive_attribute>")
+        attribute = self.temp_dict_mmcm["clkfbout_mult_f"]
 
         # Set value to something valid and test
-        attribute.set_value("11.5")
+        attribute.set_value(11.5)
         self.assertTrue(attribute.is_valid())
 
         # Set value to something invalid and test
-        attribute.set_value("64.001")
+        attribute.set_value(64.001)
         self.assertFalse(attribute.is_valid())
 
     # Test creation of ListAttribute from xml and test validation function
     def test_list_attribute(self):
-        attribute = PrimitiveAttribute.from_xml("<primitive_attribute type=\"ListAttribute\">\
-            <name>bandwidth</name>\
-            <num_type>str</num_type>\
-            <default>OPTIMIZED</default>\
-            <values>\
-                <value>OPTIMIZED</value>\
-                <value>HIGH</value>\
-                <value>LOW</value>\
-            </values>\
-        </primitive_attribute>")
+        attribute = self.temp_dict_mmcm["bandwidth"]
 
         # Test "values" attribute
         self.assertTrue(attribute.values == ["OPTIMIZED", "HIGH", "LOW"])
@@ -53,25 +37,47 @@ class PrimitiveAttributeTest(unittest.TestCase):
         self.assertFalse(attribute.is_valid())
 
 
-# Test Cases for the Primitive class
-# This also tests the existing xml files for Primitives
-class PrimitiveTest(unittest.TestCase):
+# Test Cases for the get_clock_attributes function
+class AttributeListTest(unittest.TestCase):
     def setUp(self) -> None:
-        with open(paths["mmcme2_base_attributes.xml"]) as file:
-            temp_str = "".join(file.readlines())
-        self.mmcme2_base_primitive = Primitive.from_xml(temp_str)
-        # self.plle2_base_primitive = Primitive.from_xml(paths["plle2_base_attributes.xml"])
+        self.temp_dict_pll = get_clock_attributes("Plle2Base")
+        self.temp_dict_mmcm = get_clock_attributes("Mmcme2Base")
 
-    # Test if all the necessary attributes were loaded from the xml
+    # Test if all the necessary attributes for the Mmcme2Base are existent
     def test_mmcme2_base_attributes(self):
         for attribute_name in ["bandwidth", "clkfbout_mult_f", "clkfbout_phase", "clkin1_period", "clkout0_divide_f",
-                               "clkout1_divide", "clkout2_divide", "clkout3_divide", "clkout4_divide",
-                               "clkout5_divide", "clkout0_duty_cycle", "clkout1_duty_cycle", "clkout2_duty_cycle",
+                               "clkout1_divide", "clkout2_divide", "clkout3_divide", "clkout4_divide", "clkout5_divide",
+                               "clkout6_divide", "clkout0_duty_cycle", "clkout1_duty_cycle", "clkout2_duty_cycle",
                                "clkout3_duty_cycle", "clkout4_duty_cycle", "clkout5_duty_cycle", "clkout6_duty_cycle",
                                "clkout0_phase", "clkout1_phase", "clkout2_phase", "clkout3_phase", "clkout4_phase",
                                "clkout5_phase", "clkout6_phase", "clkout4_cascade", "divclk_divide", "ref_jitter1",
                                "startup_wait"]:
-            self.assertIn(attribute_name, self.mmcme2_base_primitive.__dict__)
+            self.assertIn(attribute_name, self.temp_dict_mmcm)
+
+    # Test if all the necessary attributes for the Plle2Base are existent
+    def test_plle2_base_attributes(self):
+        for attribute_name in ["bandwidth", "clkfbout_mult", "clkfbout_phase", "clkin1_period",
+                               "clkout0_divide",
+                               "clkout1_divide", "clkout2_divide", "clkout3_divide", "clkout4_divide",
+                               "clkout5_divide", "clkout0_duty_cycle", "clkout1_duty_cycle", "clkout2_duty_cycle",
+                               "clkout3_duty_cycle", "clkout4_duty_cycle", "clkout5_duty_cycle",
+                               "clkout0_phase", "clkout1_phase", "clkout2_phase", "clkout3_phase", "clkout4_phase",
+                               "clkout5_phase", "divclk_divide", "ref_jitter1",
+                               "startup_wait"]:
+            self.assertIn(attribute_name, self.temp_dict_pll)
+        self.assertFalse("clkout4_cascade" in self.temp_dict_pll)
+
+    # Test if get_clock_attributes delivers a new copy each time it is called
+    def test_reference_and_value_integrity(self):
+        self.assertEqual(self.temp_dict_pll["bandwidth"].value, "OPTIMIZED")
+
+        self.temp_dict_pll["bandwidth"].set_value("LOW")
+        self.assertEqual(self.temp_dict_pll["bandwidth"].value, "LOW")
+
+        # Reset dictionary
+        self.temp_dict_pll = get_clock_attributes("Plle2Base")
+        self.assertEqual(self.temp_dict_pll["bandwidth"].value, "OPTIMIZED")
+
 
 
 # Test Case for the FPGAModel class
@@ -89,4 +95,4 @@ class FPGAModelTest(unittest.TestCase):
     # Test if values for specific limitations are validated correctly
     def test_dummy_model_value_verification(self):
         self.assertTrue(self.dummy_model.validate_mmcm_input_frequency(55))
-        self.assertFalse(self.dummy_model.validate_pll_vco(799))
+        self.assertFalse(self.dummy_model.validate_pll_input_frequency(1337))
