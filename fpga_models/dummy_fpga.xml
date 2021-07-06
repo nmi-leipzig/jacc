@@ -1,7 +1,11 @@
 <!-- This is a dummy FPGA model -->
 <!-- Its max and min value ranges are compatible with Artix-7, Virtex-7, Kintex-7 models of any existing speed grade -->
 
-<fpga_model name="dummy" speed_grade="dummy">
+<fpga_model name="dummy">
+
+	<speed_grades>
+		<speed_grade>dummy</speed_grade>
+	</speed_grades>
     
     <mmcm_f_in_min>10</mmcm_f_in_min>
     <mmcm_f_in_max>800</mmcm_f_in_max>
