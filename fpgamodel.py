@@ -5,9 +5,6 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class FPGAModel:
-    model_name: str
-    speed_grades: list
-    voltage: str
 
     mmcm_f_in_min: float
     mmcm_f_in_max: float
@@ -26,6 +23,10 @@ class FPGAModel:
     pll_f_vco_max: float
     pll_f_pfd_min: float
     pll_f_pfd_max: float
+
+    model_name: str
+    speed_grades: list
+    voltage: str = None
 
     @classmethod
     def from_json(cls, json_path):
