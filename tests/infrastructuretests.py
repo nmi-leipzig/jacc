@@ -1,7 +1,6 @@
 import unittest
-from pathtests import paths
-from fpga_globals import get_clock_attributes
-from fpgaobjects import FPGAModel
+from fpgaglobals import get_clock_attributes
+from fpgaglobals import FPGA_MODELS
 
 
 # Test Cases for the ClockAttribute classes (and others that inherit from ClockAttribute)
@@ -14,11 +13,11 @@ class PrimitiveAttributeTest(unittest.TestCase):
         attribute = self.temp_dict_mmcm["clkfbout_mult_f"]
 
         # Set value to something valid and test
-        attribute.set_value(11.5)
+        attribute.value = 11.5
         self.assertTrue(attribute.is_valid())
 
         # Set value to something invalid and test
-        attribute.set_value(64.001)
+        attribute.value = 64.001
         self.assertFalse(attribute.is_valid())
 
     # Test creation of ListAttribute from xml and test validation function
@@ -79,17 +78,19 @@ class AttributeListTest(unittest.TestCase):
         self.assertEqual(self.temp_dict_pll["bandwidth"].value, "OPTIMIZED")
 
 
+class AttributeFunctionalityTest(unittest.TestCase):
+    """Tests features like  the __eq__ method of ClockAttribute"""
+    # TODO
+
 
 # Test Case for the FPGAModel class
 class FPGAModelTest(unittest.TestCase):
     def setUp(self) -> None:
-        with open(paths["dummy_fpga.xml"]) as file:
-            temp_str = "".join(file.readlines())
-        self.dummy_model = FPGAModel.from_xml(temp_str)
+        self.dummy_model = FPGA_MODELS[("dummy", "dummy")]
 
     # Test if attributes were read correctly from xml
     def test_dummy_model_attribute(self):
-        self.assertEqual(self.dummy_model.name, "dummy")
+        self.assertEqual(self.dummy_model.model_name, "dummy")
         self.assertEqual(self.dummy_model.mmcm_f_in_min, 10)
 
     # Test if values for specific limitations are validated correctly

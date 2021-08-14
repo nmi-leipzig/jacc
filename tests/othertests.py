@@ -12,9 +12,9 @@ class UtilityTests(unittest.TestCase):
         self.assertFalse(check_significant_digits(1.111, 2))
 
     def test_period_to_frequency_conversion(self):
-        self.assertEqual(convert_period_to_frequency(33.333), 30)
-        self.assertEqual(convert_period_to_frequency(0.938), 1066)
+        self.assertAlmostEqual(period_to_frequency_mhz_precision(33.333), 30, delta=0.1)
+        self.assertAlmostEqual(period_to_frequency_mhz_precision(0.938), 1066, delta=0.1)
 
     def test_frequency_to_period_conversion(self):
-        self.assertEqual(convert_frequency_to_period(30), 33.333)
-        self.assertEqual(convert_frequency_to_period(19), 52.631)
+        self.assertAlmostEqual(frequency_to_period_ns_precision(30), 33.333, delta=0.001)
+        self.assertAlmostEqual(frequency_to_period_ns_precision(19), 52.631, delta=0.001)
