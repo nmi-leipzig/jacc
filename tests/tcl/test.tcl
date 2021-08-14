@@ -1,2 +1,0 @@
-
-puts "otto olaf oswin"
