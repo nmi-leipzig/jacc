@@ -1,86 +1,107 @@
 from abc import ABC, abstractmethod
-from utility import check_significant_digits
-from decimal import Decimal
-from math import ceil, floor
+from dataclasses import dataclass
+from typing import Any
 
-
+@dataclass
 class ClockAttribute(ABC):
+    """
+    Base Class for all different Attributes that can be set in order to configure a fpga primitive
+    """
+    name: str
+    default_value: Any
+    template: str
 
-    def __init__(self, name: str, default_value, template: str, on: bool = False):
-        self.name = name
-        self.default_value = default_value
-        self.value = default_value
-        self.template = template
-        self.on = on
+    on = False
+    value = None
+
+    def __post_init__(self):
+        self.value = self.default_value
 
     @abstractmethod
-    def is_valid(self) -> bool:
+    def set_value(self, value):
         pass
 
     def instantiate_template(self):
         return self.template.replace("@value@", str(self.value))
 
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            raise TypeError(f"Error, cannot compare \"{type(self)}\" and \"{type(other)}\"")
 
+        return self.name == other.name and self.value == other.value and self.on == other.on
+
+    def __ne__(self, other):
+        if not isinstance(other, type(self)):
+            raise TypeError(f"Error, cannot compare \"{type(self)}\" and \"{type(other)}\"")
+
+        return not (self.name == other.name and self.value == other.value and self.on == other.on)
+
+
+@dataclass
 class RangeAttribute(ClockAttribute):
+    """
+    Class for number Attributes whose value has to be within a specific range (like [0.0; 52.631])
+    """
+    start: Any
+    end: Any
+    decimal_places: int
 
-    def __init__(self, name: str, default_value, template: str, start, end):
-        ClockAttribute.__init__(self, name, default_value, template)
+    def set_value(self, value):
+        # Check if number is of float or int and throw error if needed
+        if not (isinstance(value, int) or isinstance(value, float)):
+            raise TypeError(f"Error, wrong type used. Value \"{value}\" has invalid type \"{type(value)}\"")
+        if value < self.start or value > self.end:
+            raise ValueError(f"Error, value \"{value}\" is invalid. Value should be within [{self.start}; {self.end}]")
 
-        self.default = default_value
-        self.value = self.default
+        self.value = value
 
-        self.start = start
-        self.end = end
-
-    @abstractmethod
-    def is_valid(self) -> bool:
-        pass
-
-    @abstractmethod
-    def correct_and_set_value(self, value) -> bool:
-        pass
+    def instantiate_template(self):
+        return self.template.replace("@value@", f"{self.value:.{self.decimal_places}f}")
 
 
+@dataclass
 class IncrementRangeAttribute(RangeAttribute):
+    """
+    Class for Range Attributes whose value can only be incremented by a specific value, e.g. 0.125.
+    It also provides a generator (get_range_as_generator) which iterates through all possible values within the range.
+    """
+    increment: Any
 
-    def __init__(self, name: str, default_value, template: str, start, end, increment, decimal_places: int):
-        RangeAttribute.__init__(self, name, default_value, template, start, end)
+    def set_and_correct_value(self, target_value: float):
 
-        self.increment = increment
-
-        # This Integer gives the point to which the value will be rounded
-        self.decimal_places = decimal_places
-
-    def is_valid(self) -> bool:
-        # Check if value is within range
-        within_range = self.start <= self.value <= self.end
-        # Check if value fits increment
-        # This works for floats in this case
-        # Because the increment is usually 0.125 (and should therefore not lead to false positive rounding errors)
-        correct_increment = not (self.value % self.increment)
-
-        return within_range and correct_increment
-
-    def correct_and_set_value(self, value):
-
-        # Round the number to the correct decimal places (to in if decimal_places == 0)
-        if self.decimal_places:
-            value = round(value, self.decimal_places)
-
-            # Mod with floating points is difficult, this is a cheap fix
-            value = value - float(Decimal(str(value)) % Decimal(str(self.increment)))
-        else:
-            value = round(value)
-
-            value = value - (value % self.increment)
-
-        # Set value to minimum or maximum (in case it went out of bounds)
-        if value < self.start:
+        # Skip everything below if the target value is out of bounds or equal to the min/max value
+        if target_value <= self.start:
             self.value = self.start
-        elif value > self.end:
+            return
+        elif target_value >= self.end:
             self.value = self.end
+            return
+
+        lower_bound = self.start
+
+        # A counter for multiplication is used here.
+        # Multiplication will lead to less floating point errors than increment by adding
+        counter = 0
+
+        # Inefficient but easy to read loop
+        # Could be replaced with on modulo assignment in theory
+        # But should not be replaced with modulo in practice because of annoying floating point errors
+        while lower_bound < target_value and lower_bound < self.end:
+            lower_bound = self.increment * counter + self.start
+            counter += 1
+
+        # Chose between lower and upper bound the one that's closer to the target value
+        if abs(lower_bound - target_value) < abs(lower_bound + self.increment - target_value):
+            self.value = round(lower_bound, self.decimal_places)
         else:
-            self.value = value
+            self.value = round(lower_bound + self.increment, self.decimal_places)
+
+    def set_value(self, value):
+        # Check if number is of float or int and throw error if needed
+        if not (isinstance(value, int) or isinstance(value, float)):
+            raise TypeError(f"Wrong type used. Value \"{value}\" has invalid type \"{type(value)}\"")
+
+        self.set_and_correct_value(value)
 
     def get_range_as_generator(self, start=None, end=None):
         current_value = self.start if start is None or start < self.start else start
@@ -91,124 +112,55 @@ class IncrementRangeAttribute(RangeAttribute):
             current_value += self.increment
 
 
-class OutputDivider(IncrementRangeAttribute):
+@dataclass
+class OutputDivider(RangeAttribute):
+    """
+    Class specifically made for the output dividers (like CLKOUT1_DIVIDER).
+    It seems very similar to IncrementRangeAttribute but it functionality is different.
+    It does not use any of IncrementRangeAttributes' methods and does therefore not inherit from it.
+    """
+    increment: float
+    float_divider: bool = False
 
-    def __init__(self, name: str, default_value, template: str, start, end, increment, decimal_places: int,
-                 float_divider: bool = False):
-        IncrementRangeAttribute.__init__(self, name, default_value, template, start, end, increment, decimal_places)
-        self.float_divider = float_divider
-
-    def correct_and_set_value_for_dividers(self, value, do_ceil: bool = False, do_floor: bool = False) -> bool:
-        """
-        Adapts the given value to the given restrictions before setting it
-        :param value:
-        :param do_ceil: Forces the function to round the value up
-        :param do_floor: Forces the function to round the value down
-        :return: True if the corrected value is greater or equal to the given value or False if it is less
-        """
-
-        decimal_places_temp = self.decimal_places
-        # Very special case for the float divider
-        # The float divider can have values between 2.000 and 128.000 OR just 1
-        if self.float_divider and 0 <= value < 2:
-            decimal_places_temp = 0
-
-        if do_ceil and do_floor:
-            raise ValueError("do_floor and do_ceil are set as True, which is not allowed")
-        value_before_action = value
-
-        # Round the number to the correct decimal places (to in if decimal_places == 0)
-        if decimal_places_temp:
-            if not(do_ceil or do_floor):
-                value = round(value, decimal_places_temp)
-            elif do_ceil:
-                value = ceil(value * 10**decimal_places_temp) / 10 ** decimal_places_temp
-            else:
-                value = ceil(value * 10 ** decimal_places_temp) / 10 ** decimal_places_temp
-            # Mod with floating points is difficult, this is a cheap fix
-            # TODO zitat einfuegen
-            value = value - float(Decimal(str(value)) % Decimal(str(self.increment)))
-        else:
-            if not(do_ceil or do_floor):
-                value = max(round(value), 1)
-            elif do_ceil:
-                value = ceil(value)
-            else:
-                value = max(floor(value), 1)
-
-            value = value - (value % self.increment)
-
-        # Set value to minimum or maximum (in case it went out of bounds)
-        if value < self.start and self.float_divider and self.value == 1:
-            self.value = 1
-        elif value < self.start:
-            self.value = self.start
-        elif value > self.end:
-            self.value = self.end
-        else:
-            self.value = value
-
-        if self.value >= value_before_action:
-            return True
-        else:
-            return False
-
-
-class SigDigitRangeAttribute(RangeAttribute):
-
-    def __init__(self, name: str, default_value, template: str, start, end, significant_digits):
-        RangeAttribute.__init__(self, name, default_value, template, start, end)
-
-        self.significant_digits = significant_digits
-
-    def is_valid(self) -> bool:
-        # Check if value is within range
-        within_range = self.start <= self.value <= self.end
-        # Check significant digits (only for float)
-        digits_correct = check_significant_digits(self.value, self.significant_digits)
-
-        return within_range and digits_correct
-
-    def correct_and_set_value(self, value) -> bool:
-        # TODO check sig digits
-        self.value = value
-        return None
-
-    def get_range_as_generator(self, start=None, end=None):
+    def set_value(self, value):
         # TODO
         pass
 
+    def find_lower_and_upper_value(self, fpga_f_out_min: float, fpga_f_out_max: float):
+        # TODO
+        pass
 
+@dataclass
 class ListAttribute(ClockAttribute):
-
-    # "num_type" is still included in case it is needed
-    def __init__(self, name: str, default_value, values: list, template: str, num_type=False):
-        ClockAttribute.__init__(self, name, default_value, template)
-
-        self.values = values
-
-    def is_valid(self) -> bool:
-        return self.value in self.values
+    """
+    Class for Attributes whose values are limited to a specific list of predefined values.
+    """
+    values: list
 
     def set_value(self, value):
+        if value not in self.values:
+            raise ValueError(f"Error, value \"{value}\" is not valid. Valid values are {self.values}")
+
         self.value = value
 
     def instantiate_template(self):
         return self.template.replace("@value@", f"\"{self.value}\"")
 
 
+@dataclass
 class BoolAttribute(ClockAttribute):
-
-    def __init__(self,name: str, default_vault, template: str):
-        ClockAttribute.__init__(self, name, default_vault, template)
+    """
+    Class for boolean Attributes.
+    It may seem redundant, but it takes care of TypeErrors and the template instantiation
+    """
 
     def is_valid(self) -> bool:
-        # Has to be implemented because of @abstractmethod
-        return True
+        return isinstance(self.value, bool)
 
-    def set_value(self, value):
-        # Has to be implemented because of @abstractmethod
-        # Feels like Java
+    def set_value(self, value: bool):
+        if not isinstance(self.value, bool):
+            raise TypeError(f"Error, value should be of type bool. Type given was \"{type(value)}\"")
+
         self.value = value
 
     def instantiate_template(self):

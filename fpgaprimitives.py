@@ -1,7 +1,5 @@
-from abc import ABC, abstractmethod
 from fpgaglobals import get_clock_attributes
 from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision
-from dataclasses import dataclass
 from clkattr import *
 
 
@@ -11,7 +9,7 @@ class ClockPrimitive(ABC):
     bandwidth: ListAttribute
     ref_jitter1: IncrementRangeAttribute
     startup_wait: BoolAttribute
-    clkfbout_phase: SigDigitRangeAttribute
+    clkfbout_phase: RangeAttribute
 
     clkout1_divide: OutputDivider
     clkout2_divide: OutputDivider
@@ -19,19 +17,19 @@ class ClockPrimitive(ABC):
     clkout4_divide: OutputDivider
     clkout5_divide: OutputDivider
 
-    clkout0_duty_cycle: SigDigitRangeAttribute
-    clkout1_duty_cycle: SigDigitRangeAttribute
-    clkout2_duty_cycle: SigDigitRangeAttribute
-    clkout3_duty_cycle: SigDigitRangeAttribute
-    clkout4_duty_cycle: SigDigitRangeAttribute
-    clkout5_duty_cycle: SigDigitRangeAttribute
+    clkout0_duty_cycle: RangeAttribute
+    clkout1_duty_cycle: RangeAttribute
+    clkout2_duty_cycle: RangeAttribute
+    clkout3_duty_cycle: RangeAttribute
+    clkout4_duty_cycle: RangeAttribute
+    clkout5_duty_cycle: RangeAttribute
 
-    clkout0_phase: SigDigitRangeAttribute
-    clkout1_phase: SigDigitRangeAttribute
-    clkout2_phase: SigDigitRangeAttribute
-    clkout3_phase: SigDigitRangeAttribute
-    clkout4_phase: SigDigitRangeAttribute
-    clkout5_phase: SigDigitRangeAttribute
+    clkout0_phase: RangeAttribute
+    clkout1_phase: RangeAttribute
+    clkout2_phase: RangeAttribute
+    clkout3_phase: RangeAttribute
+    clkout4_phase: RangeAttribute
+    clkout5_phase: RangeAttribute
 
     specification = None
     m = None
@@ -190,7 +188,7 @@ class Plle2Base(ClockPrimitive):
         return self.divclk_divide.get_range_as_generator(start=start, end=end)
 
     def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
-        self.clkin1_period.correct_and_set_value(frequency_to_period_ns_precision(f_in_1))
+        self.clkin1_period.set_and_correct_value(frequency_to_period_ns_precision(f_in_1))
         self.clkin1_period.on = True
 
     def get_output_frequency_dict(self) -> dict:
@@ -239,8 +237,8 @@ class Mmcme2Base(ClockPrimitive):
     clkout0_divide_f: OutputDivider
 
     clkout6_divide: OutputDivider
-    clkout6_duty_cycle: SigDigitRangeAttribute
-    clkout6_phase: SigDigitRangeAttribute
+    clkout6_duty_cycle: RangeAttribute
+    clkout6_phase: RangeAttribute
 
     def __str__(self):
         attr_strings = [attr.instantiate_template() for attr in self.attributes if attr.on]
@@ -304,7 +302,7 @@ class Mmcme2Base(ClockPrimitive):
         return self.divclk_divide.get_range_as_generator(start=start, end=end)
 
     def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
-        self.clkin1_period.correct_and_set_value(frequency_to_period_ns_precision(f_in_1))
+        self.clkin1_period.set_and_correct_value(frequency_to_period_ns_precision(f_in_1))
         self.clkin1_period.on = True
 
     def get_output_frequency_dict(self) -> dict:

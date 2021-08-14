@@ -2,158 +2,118 @@ from clkattr import *
 import pathlib
 from fpgamodel import FPGAModel
 
-FPGA_MODEL_XML_PATHS = [pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-1_1x0v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-1LI_0x95v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-2_-2LE_1x0v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-2LE_0x9v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-3_1x0v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "dummy_fpga.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-1_1x0v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-1M_-1LM_-1Q_1x0v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-2_-2LE_1x0v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-2LE_0x9v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-2LI_0x95v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-3_1x0v.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-1M.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-1.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-2_-2L_-2G.json"),
-                        pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-3.json")
-                        ]
+FPGA_MODEL_JSON_PATHS = [pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-1_1x0v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-1LI_0x95v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-2_-2LE_1x0v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-2LE_0x9v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "artix_-3_1x0v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "dummy_fpga.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-1_1x0v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-1M_-1LM_-1Q_1x0v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-2_-2LE_1x0v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-2LE_0x9v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-2LI_0x95v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "kintex_-3_1x0v.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-1M.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-1.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-2_-2L_-2G.json"),
+                         pathlib.Path(__file__).parent.joinpath("fpga_models", "virtex_-3.json")
+                         ]
 
 FPGA_MODELS = {identifier: model
                for model in [FPGAModel.from_json(path)
-                             for path in FPGA_MODEL_XML_PATHS]
+                             for path in FPGA_MODEL_JSON_PATHS]
                for identifier in model.get_identifier()}
 
 
 def get_clock_attributes(clock_primitive: str):
     clock_attributes_pll_and_mmcm = {
-        "bandwidth": ListAttribute("BANDWIDTH", "OPTIMIZED", ["OPTIMIZED", "HIGH", "LOW"],
-                                   ".BANDWIDTH(@value@)"),
+        "bandwidth": ListAttribute("BANDWIDTH", "OPTIMIZED", ".BANDWIDTH(@value@)", ["OPTIMIZED", "HIGH", "LOW"]),
 
         # TODO LOOK UP digits
-        "ref_jitter1": IncrementRangeAttribute("REF_JITTER1", 0.010, ".REF_JITTER1(@value@)",
-                                               0.0, 0.999, 0.001, 3),
+        "ref_jitter1": RangeAttribute("REF_JITTER1", 0.010, ".REF_JITTER1(@value@)", 0.0, 0.999, 3),
 
         "startup_wait": BoolAttribute("START_WAIT", False, ".STARTUP_WAIT(@value@)"),
 
-        "clkfbout_phase": SigDigitRangeAttribute("CLKFBOUT_PHASE", 0.0,
-                                                 ".CLKFBOUT_PHASE(@value@)",
-                                                 -360.0, 360.0, 3),  # TODO LOOK UP digits
+        "clkfbout_phase": RangeAttribute("CLKFBOUT_PHASE", 0.0,
+                                         ".CLKFBOUT_PHASE(@value@)",
+                                         -360.0, 360.0, 3),  # TODO LOOK UP digits
 
         "clkout1_divide": OutputDivider("CLKOUT1_DIVIDE", 1,
-                                                  ".CLKOUT1_DIVIDE(@value@)",
-                                                  1, 128, 1, 0),
+                                        ".CLKOUT1_DIVIDE(@value@)",
+                                        1, 128, 1, 0),
 
         "clkout2_divide": OutputDivider("CLKOUT2_DIVIDE", 1,
-                                                  ".CLKOUT2_DIVIDE(@value@)",
-                                                  1, 128, 1, 0),
+                                        ".CLKOUT2_DIVIDE(@value@)",
+                                        1, 128, 1, 0),
 
         "clkout3_divide": OutputDivider("CLKOUT3_DIVIDE", 1,
-                                                  ".CLKOUT3_DIVIDE(@value@)",
-                                                  1, 128, 1, 0),
+                                        ".CLKOUT3_DIVIDE(@value@)",
+                                        1, 128, 1, 0),
 
         "clkout4_divide": OutputDivider("CLKOUT4_DIVIDE", 1,
-                                                  ".CLKOUT4_DIVIDE(@value@)",
-                                                  1, 128, 1, 0),
+                                        ".CLKOUT4_DIVIDE(@value@)",
+                                        1, 128, 1, 0),
 
         "clkout5_divide": OutputDivider("CLKOUT5_DIVIDE", 1,
-                                                  ".CLKOUT5_DIVIDE(@value@)",
-                                                  1, 128, 1, 0),
+                                        ".CLKOUT5_DIVIDE(@value@)",
+                                        1, 128, 1, 0),
 
-        "clkout0_duty_cycle": SigDigitRangeAttribute("CLKOUT0_DUTY_CYCLE", 0.5,
-                                                     ".CLKOUT0_DUTY_CYCLE(@value@)",
-                                                     0.01, 0.99, 2),
+        "clkout0_duty_cycle": RangeAttribute("CLKOUT0_DUTY_CYCLE", 0.5, ".CLKOUT0_DUTY_CYCLE(@value@)", 0.01, 0.99, 2),
 
         # TODO verify duty cycle significant digit
-        "clkout1_duty_cycle": SigDigitRangeAttribute("CLKOUT1_DUTY_CYCLE", 0.5,
-                                                     ".CLKOUT1_DUTY_CYCLE(@value@)", 0.01,
-                                                     0.99, 2),
+        "clkout1_duty_cycle": RangeAttribute("CLKOUT1_DUTY_CYCLE", 0.5, ".CLKOUT1_DUTY_CYCLE(@value@)", 0.01, 0.99, 2),
 
-        "clkout2_duty_cycle": SigDigitRangeAttribute("CLKOUT2_DUTY_CYCLE", 0.5,
-                                                     ".CLKOUT2_DUTY_CYCLE(@value@)", 0.01,
-                                                     0.99, 2),
+        "clkout2_duty_cycle": RangeAttribute("CLKOUT2_DUTY_CYCLE", 0.5, ".CLKOUT2_DUTY_CYCLE(@value@)", 0.01, 0.99, 2),
 
-        "clkout3_duty_cycle": SigDigitRangeAttribute("CLKOUT3_DUTY_CYCLE", 0.5,
-                                                     ".CLKOUT3_DUTY_CYCLE(@value@)", 0.01,
-                                                     0.99, 2),
+        "clkout3_duty_cycle": RangeAttribute("CLKOUT3_DUTY_CYCLE", 0.5, ".CLKOUT3_DUTY_CYCLE(@value@)", 0.01, 0.99, 2),
 
-        "clkout4_duty_cycle": SigDigitRangeAttribute("CLKOUT4_DUTY_CYCLE", 0.5,
-                                                     ".CLKOUT4_DUTY_CYCLE(@value@)", 0.01,
-                                                     0.99, 2),
+        "clkout4_duty_cycle": RangeAttribute("CLKOUT4_DUTY_CYCLE", 0.5, ".CLKOUT4_DUTY_CYCLE(@value@)", 0.01, 0.99, 2),
 
-        "clkout5_duty_cycle": SigDigitRangeAttribute("CLKOUT5_DUTY_CYCLE", 0.5,
-                                                     ".CLKOUT5_DUTY_CYCLE(@value@)", 0.01,
-                                                     0.99, 2),
+        "clkout5_duty_cycle": RangeAttribute("CLKOUT5_DUTY_CYCLE", 0.5, ".CLKOUT5_DUTY_CYCLE(@value@)", 0.01, 0.99, 2),
 
         # TODO verify phase sig digit
-        "clkout0_phase": SigDigitRangeAttribute("CLKOUT0_PHASE", 0.0,
-                                                ".CLKOUT0_PHASE(@value@)",
-                                                -360.0, 360.0, 3),
+        "clkout0_phase": RangeAttribute("CLKOUT0_PHASE", 0.0, ".CLKOUT0_PHASE(@value@)", -360.0, 360.0, 3),
 
-        "clkout1_phase": SigDigitRangeAttribute("CLKOUT1_PHASE", 0.0,
-                                                ".CLKOUT1_PHASE(@value@)",
-                                                -360.0, 360.0, 3),
+        "clkout1_phase": RangeAttribute("CLKOUT1_PHASE", 0.0, ".CLKOUT1_PHASE(@value@)", -360.0, 360.0, 3),
 
-        "clkout2_phase": SigDigitRangeAttribute("CLKOUT2_PHASE", 0.0,
-                                                ".CLKOUT2_PHASE(@value@)",
-                                                -360.0, 360.0, 3),
+        "clkout2_phase": RangeAttribute("CLKOUT2_PHASE", 0.0, ".CLKOUT2_PHASE(@value@)", -360.0, 360.0, 3),
 
-        "clkout3_phase": SigDigitRangeAttribute("CLKOUT3_PHASE", 0.0,
-                                                ".CLKOUT3_PHASE(@value@)",
-                                                -360.0, 360.0, 3),
+        "clkout3_phase": RangeAttribute("CLKOUT3_PHASE", 0.0, ".CLKOUT3_PHASE(@value@)", -360.0, 360.0, 3),
 
-        "clkout4_phase": SigDigitRangeAttribute("CLKOUT4_PHASE", 0.0,
-                                                ".CLKOUT4_PHASE(@value@)",
-                                                -360.0, 360.0, 3),
+        "clkout4_phase": RangeAttribute("CLKOUT4_PHASE", 0.0, ".CLKOUT4_PHASE(@value@)", -360.0, 360.0, 3),
 
-        "clkout5_phase": SigDigitRangeAttribute("CLKOUT5_PHASE", 0.0,
-                                                ".CLKOUT5_PHASE(@value@)",
-                                                -360.0, 360.0, 3),
+        "clkout5_phase": RangeAttribute("CLKOUT5_PHASE", 0.0, ".CLKOUT5_PHASE(@value@)", -360.0, 360.0, 3),
     }
 
     clock_attributes_pll = {
-        "clkout0_divide": OutputDivider("CLKOUT0_DIVIDE", 1,
-                                                  ".CLKOUT0_DIVIDE(@value@)",
-                                                  1, 128, 1, 0),
+        "clkout0_divide": OutputDivider("CLKOUT0_DIVIDE", 1, ".CLKOUT0_DIVIDE(@value@)", 1, 128, 1, 0),
 
-        "clkfbout_mult": IncrementRangeAttribute("CLKFBOUT_MULT", 5, ".CLKFBOUT_MULT(@value@)",
-                                                 2, 64, 1, 0),
+        "clkfbout_mult": IncrementRangeAttribute("CLKFBOUT_MULT", 5, ".CLKFBOUT_MULT(@value@)", 2, 64, 0, 1),
 
-        "divclk_divide": IncrementRangeAttribute("DIVCLK_DIVIDE", 1, ".DIVCLK_DIVIDE(@value@)",
-                                                 1, 56, 1, 0),
+        "divclk_divide": IncrementRangeAttribute("DIVCLK_DIVIDE", 1, ".DIVCLK_DIVIDE(@value@)", 1, 56, 0, 1),
 
-        "clkin1_period": IncrementRangeAttribute("CLKIN_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)",
-                                                 0.0, 52.631, 0.001, 3),  # TODO LOOK UP digits
+        "clkin1_period": RangeAttribute("CLKIN_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)", 0.0, 52.631, 3),  # TODO LOOK UP digits
 
     }
 
     clock_attributes_mmcm = {
-        "clkout0_divide_f": OutputDivider("CLKOUT0_DIVIDE_F", 1.0, ".CLKOUT0_DIVIDE_F(@value@)",
-                                          2.0, 128.0, 0.125, 3, float_divider=True),
+        "clkout0_divide_f": OutputDivider("CLKOUT0_DIVIDE_F", 1.0, ".CLKOUT0_DIVIDE_F(@value@)", 2.0, 128.0, 3, 0.125, float_divider=True),
 
-        "clkfbout_mult_f": IncrementRangeAttribute("CLKFBOUT_MULT_F", 5.0, ".CLKFBOUT_MULT_F(@value@)",
-                                                   2.0, 64.0, 0.125, 3),
+        "clkfbout_mult_f": IncrementRangeAttribute("CLKFBOUT_MULT_F", 5.0, ".CLKFBOUT_MULT_F(@value@)", 2.0, 64.0, 3,
+                                                   0.125),
 
-        "clkin1_period": IncrementRangeAttribute("CLKIN1_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)",
-                                                 0.0, 100.0, 0.001, 3),  # TODO LOOK UP digits
+        "clkin1_period": RangeAttribute("CLKIN1_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)", 0.0, 100.0, 3),  # TODO LOOK UP digits
 
-        "divclk_divide": IncrementRangeAttribute("DIVCLK_DIVIDE", 1, ".DIVCLK_DIVIDE(@value@)",
-                                                 1, 106, 1, 0),
+        "divclk_divide": IncrementRangeAttribute("DIVCLK_DIVIDE", 1, ".DIVCLK_DIVIDE(@value@)", 1, 106, 1, 0),
 
         "clkout4_cascade": BoolAttribute("CLKOUT4_CASCADE", False, ".CLKOUT4_CASCADE(@value@)"),
 
-        "clkout6_divide": OutputDivider("CLKOUT6_DIVIDE", 1,
-                                                  ".CLKOUT6_DIVIDE(@value@)",
-                                                  1, 128, 1, 0),
+        "clkout6_divide": OutputDivider("CLKOUT6_DIVIDE", 1, ".CLKOUT6_DIVIDE(@value@)", 1, 128, 1, 0),
 
-        "clkout6_duty_cycle": SigDigitRangeAttribute("CLKOUT6_DUTY_CYCLE", 0.5,
-                                                     ".CLKOUT6_DUTY_CYCLE(@value@)", 0.01,
-                                                     0.99, 2),
+        "clkout6_duty_cycle": RangeAttribute("CLKOUT6_DUTY_CYCLE", 0.5, ".CLKOUT6_DUTY_CYCLE(@value@)", 0.01, 0.99, 2),
 
-        "clkout6_phase": SigDigitRangeAttribute("CLKOUT6_PHASE", 0.0,
-                                                ".CLKOUT6_PHASE(@value@)",
-                                                -360.0, 360.0, 3),
+        "clkout6_phase": RangeAttribute("CLKOUT6_PHASE", 0.0, ".CLKOUT6_PHASE(@value@)", -360.0, 360.0, 3),
     }
 
     if clock_primitive == "Plle2Base":
