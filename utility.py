@@ -1,4 +1,11 @@
 
+def frequency_to_period_ns_precision(frequency_in_mhz: float) -> float:
+    return (1 / frequency_in_mhz) * 1000
+
+
+def period_to_frequency_mhz_precision(period_in_ns: float) -> float:
+    return (1 / period_in_ns) * 1000
+
 
 # Returns True if has "number" has (approximately) no more than "significant_digits" significant digits
 # This function should NOT be used outside the very specific use case of the RangeAttribute
@@ -35,9 +42,5 @@ def check_significant_digits(number: float, significant_digits: int):
     return not count > significant_digits
 
 
-def convert_period_to_frequency(period: float, input_unit: str = "ns", output_unit: str = "MHz"):
-    pass
-
-
-def convert_frequency_to_period(frequency: float, input_unit: str = "MHz", output_unit: str = "ns"):
-    pass
+def relative_error(target_value, actual_value):
+    return abs(target_value - actual_value) / target_value
