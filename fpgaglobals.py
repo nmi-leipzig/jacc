@@ -39,25 +39,15 @@ def get_clock_attributes(clock_primitive: str):
                                          ".CLKFBOUT_PHASE(@value@)",
                                          -360.0, 360.0, 3),  # TODO LOOK UP digits
 
-        "clkout1_divide": OutputDivider("CLKOUT1_DIVIDE", 1,
-                                        ".CLKOUT1_DIVIDE(@value@)",
-                                        1, 128, 1, 0),
+        "clkout1_divide": OutputDivider("CLKOUT1_DIVIDE", 1, ".CLKOUT1_DIVIDE(@value@)", 1, 128, 0, 1),
 
-        "clkout2_divide": OutputDivider("CLKOUT2_DIVIDE", 1,
-                                        ".CLKOUT2_DIVIDE(@value@)",
-                                        1, 128, 1, 0),
+        "clkout2_divide": OutputDivider("CLKOUT2_DIVIDE", 1, ".CLKOUT2_DIVIDE(@value@)", 1, 128, 0, 1),
 
-        "clkout3_divide": OutputDivider("CLKOUT3_DIVIDE", 1,
-                                        ".CLKOUT3_DIVIDE(@value@)",
-                                        1, 128, 1, 0),
+        "clkout3_divide": OutputDivider("CLKOUT3_DIVIDE", 1, ".CLKOUT3_DIVIDE(@value@)", 1, 128, 0, 1),
 
-        "clkout4_divide": OutputDivider("CLKOUT4_DIVIDE", 1,
-                                        ".CLKOUT4_DIVIDE(@value@)",
-                                        1, 128, 1, 0),
+        "clkout4_divide": OutputDivider("CLKOUT4_DIVIDE", 1, ".CLKOUT4_DIVIDE(@value@)", 1, 128, 0, 1),
 
-        "clkout5_divide": OutputDivider("CLKOUT5_DIVIDE", 1,
-                                        ".CLKOUT5_DIVIDE(@value@)",
-                                        1, 128, 1, 0),
+        "clkout5_divide": OutputDivider("CLKOUT5_DIVIDE", 1, ".CLKOUT5_DIVIDE(@value@)", 1, 128, 0, 1),
 
         "clkout0_duty_cycle": IncrementRangeAttribute("CLKOUT0_DUTY_CYCLE", 0.5, ".CLKOUT0_DUTY_CYCLE(@value@)", 0.01,
                                                       0.99, 2, None),
@@ -93,7 +83,7 @@ def get_clock_attributes(clock_primitive: str):
     }
 
     clock_attributes_pll = {
-        "clkout0_divide": OutputDivider("CLKOUT0_DIVIDE", 1, ".CLKOUT0_DIVIDE(@value@)", 1, 128, 1, 0),
+        "clkout0_divide": OutputDivider("CLKOUT0_DIVIDE", 1, ".CLKOUT0_DIVIDE(@value@)", 1, 128, 0, 1),
 
         "clkfbout_mult": IncrementRangeAttribute("CLKFBOUT_MULT", 5, ".CLKFBOUT_MULT(@value@)", 2, 64, 0, 1),
 
@@ -104,7 +94,8 @@ def get_clock_attributes(clock_primitive: str):
     }
 
     clock_attributes_mmcm = {
-        "clkout0_divide_f": OutputDivider("CLKOUT0_DIVIDE_F", 1.0, ".CLKOUT0_DIVIDE_F(@value@)", 2.0, 128.0, 3, 0.125, float_divider=True),
+        "clkout0_divide_f": OutputDivider("CLKOUT0_DIVIDE_F", 1, ".CLKOUT0_DIVIDE_F(@value@)", 2.0, 128.0, 3, 0.125,
+                                          float_divider=True, additional_values=[1]),
 
         "clkfbout_mult_f": IncrementRangeAttribute("CLKFBOUT_MULT_F", 5.0, ".CLKFBOUT_MULT_F(@value@)", 2.0, 64.0, 3,
                                                    0.125),

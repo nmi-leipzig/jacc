@@ -85,32 +85,46 @@ class ClockingConfiguration:
     def configure_duty_cycle_parameters(self, duty_cycle_0: float = None, duty_cycle_1: float = None,
                                         duty_cycle_2: float = None, duty_cycle_3: float = None,
                                         duty_cycle_4: float = None, duty_cycle_5: float = None,
-                                        duty_cycle_6: float = None, delta_0: float = 0.5, delta_1: float = 0.5,
-                                        delta_2: float = 0.5, delta_3: float = 0.5, delta_4: float = 0.5,
-                                        delta_5: float = 0.5, delta_6: float = 0.5):
+                                        duty_cycle_6: float = None, delta_0: float = 0.2, delta_1: float = 0.2,
+                                        delta_2: float = 0.2, delta_3: float = 0.2, delta_4: float = 0.2,
+                                        delta_5: float = 0.2, delta_6: float = 0.2):
+        # Create a dictionary of used duty_cycles for quick access
         duty_cycles = {index: value
                        for index, value
-                       in enumerate([duty_cycle_0, duty_cycle_1, duty_cycle_2,
-                                     duty_cycle_3, duty_cycle_4, duty_cycle_5, duty_cycle_6])
+                       in enumerate([duty_cycle_0, duty_cycle_1, duty_cycle_2, duty_cycle_3, duty_cycle_4, duty_cycle_5,
+                                     duty_cycle_6])
                        if value is not None}
+        # Create a dictionary of used deltas for quick access
         deltas = {index: value
                   for index, value
-                  in enumerate([delta_0, delta_1, delta_2, delta_3, delta_4, delta_5, delta_6])
-                  }
+                  in enumerate([delta_0, delta_1, delta_2, delta_3, delta_4, delta_5, delta_6])}
 
+        # Initiate new
         updated_candidates = []
 
-        for configuration in self.configuration_candidates:
+        for config in self.configuration_candidates:
             viable_candidate = True
             for index in duty_cycles:
-                # TODO write get duty cycles
-                configuration.get_properties_dict[f"clkout{index}_divide"].set_and_correct_value(duty_cycles[index])
-                if relative_error(duty_cycles[index], configuration.get_properties_dict[f"clkout{index}_divide"].value) > deltas[index]:
+                # Quicksave reference to current duty cycle in order to not call the same function over and over again
+                current_dc = config.get_duty_cycle(index)
+
+                # Initiate the increment attribute based on the duty cycle restrictions
+                # WARNING: The next lines restriction is derived from a list of about 210 tests
+                # It may be possible for this formula to not work in certain unknown edge cases
+                divider_value = config.get_output_divider.value
+                current_dc.increment = 1 / (divider_value * 2)
+                current_dc.start = 1 / divider_value
+
+                # Set the next best duty cycle value
+                current_dc.set_and_correct_value(duty_cycles[index])
+                current_dc.on = True
+                # Reject the entire configuration if the result is not within the error margin of delta
+                if relative_error(duty_cycles[index], current_dc.value) > deltas[index]:
                     viable_candidate = False
                     break
 
             if viable_candidate:
-                updated_candidates.append(configuration)
+                updated_candidates.append(config)
 
     def configure_other_parameters(self, bandwidth: str = None, ref_jitter1: float = None, startup_wait: bool = None):
         if bandwidth is not None:

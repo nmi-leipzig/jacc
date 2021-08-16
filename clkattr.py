@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
+from bisect import bisect
+
 
 @dataclass
 class ClockAttribute(ABC):
@@ -47,7 +49,7 @@ class RangeAttribute(ClockAttribute):
     decimal_places: int
 
     def set_value(self, value):
-        # Check if number is of float or int and throw error if needed
+        # Check if value is float or int and throw error if needed
         if not (isinstance(value, int) or isinstance(value, float)):
             raise TypeError(f"Error, wrong type used. Value \"{value}\" has invalid type \"{type(value)}\"")
         if value < self.start or value > self.end:
@@ -121,14 +123,21 @@ class OutputDivider(RangeAttribute):
     """
     increment: float
     float_divider: bool = False
+    additional_values: list = False
 
     def set_value(self, value):
-        # TODO
         pass
 
-    def find_lower_and_upper_value(self, fpga_f_out_min: float, fpga_f_out_max: float):
-        # TODO
-        pass
+    def get_bounds_based_on_value(self, value):
+        possible_values = self.additional_values + [self.increment * n
+                                                    for n
+                                                    in range(self.start, (self.end - self.start) / self.increment)]
+        possible_values.sort()
+        lower_bound_index = bisect(possible_values, value)
+
+        # Return the lower and upper bound.
+        return possible_values[lower_bound_index], possible_values[lower_bound_index + 1]
+
 
 @dataclass
 class ListAttribute(ClockAttribute):

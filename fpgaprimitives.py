@@ -1,11 +1,10 @@
 from fpgaglobals import get_clock_attributes
-from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision
+from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision, relative_error
 from clkattr import *
 
 
 @dataclass
 class ClockPrimitive(ABC):
-
     bandwidth: ListAttribute
     ref_jitter1: IncrementRangeAttribute
     startup_wait: BoolAttribute
@@ -17,12 +16,12 @@ class ClockPrimitive(ABC):
     clkout4_divide: OutputDivider
     clkout5_divide: OutputDivider
 
-    clkout0_duty_cycle: RangeAttribute
-    clkout1_duty_cycle: RangeAttribute
-    clkout2_duty_cycle: RangeAttribute
-    clkout3_duty_cycle: RangeAttribute
-    clkout4_duty_cycle: RangeAttribute
-    clkout5_duty_cycle: RangeAttribute
+    clkout0_duty_cycle: IncrementRangeAttribute
+    clkout1_duty_cycle: IncrementRangeAttribute
+    clkout2_duty_cycle: IncrementRangeAttribute
+    clkout3_duty_cycle: IncrementRangeAttribute
+    clkout4_duty_cycle: IncrementRangeAttribute
+    clkout5_duty_cycle: IncrementRangeAttribute
 
     clkout0_phase: RangeAttribute
     clkout1_phase: RangeAttribute
@@ -31,11 +30,17 @@ class ClockPrimitive(ABC):
     clkout4_phase: RangeAttribute
     clkout5_phase: RangeAttribute
 
+    # Those two do not really need to be initialized here.
+    # It does make things clearer and removes warnings from my IDE tho
+    divclk_divide = None
+    clkin1_period = None
+
     specification = None
     m = None
     d = None
     o_list = None
     attributes = None
+    output_clocks = None
 
     def __post_init__(self):
         # Set specification, m, d, o_list and attributes references
@@ -45,37 +50,42 @@ class ClockPrimitive(ABC):
     def generate_template(self) -> str:
         return ""
 
-    @abstractmethod
-    def get_output_clk_count(self) -> int:
-        return 0
-
-    @abstractmethod
     def get_m_generator(self, start=None, end=None):
-        pass
+        return self.m.get_range_as_generator(start=start, end=end)
 
-    @abstractmethod
     def get_d_generator(self, start=None, end=None):
-        pass
+        return self.divclk_divide.get_range_as_generator(start=start, end=end)
 
-    @abstractmethod
-    def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
-        """
-        :param f_in_1: Frequency of the incoming clock 1 (in MHz)
-        :param f_in_2: Not used right now
-        """
-        pass
-
-    @abstractmethod
     def get_output_frequency_dict(self) -> dict:
-        return {}
+        return {index: (self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value)) /
+                       (self.divclk_divide.value * out_divider.value)
+                for index, out_divider in enumerate(self.o_list)
+                if out_divider.on}
 
     @abstractmethod
     def get_properties_dict(self):
         return {}
 
-    @abstractmethod
     def get_output_frequency(self, index: int) -> float:
-        pass
+        if not 0 <= index < self.output_clocks:
+            raise ValueError(f"Index out of range, pll does not have f_out with index {index}")
+        if self.o_list[index].on:
+            return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
+                   (self.divclk_divide.value * self.o_list[index].value)
+
+    def get_output_divider(self, index) -> OutputDivider:
+        if not 0 <= index < self.output_clocks:
+            raise ValueError(f"Index out of range, primitive does not have output divider with index {index}")
+        return self.o_list[index]
+
+    def get_duty_cycle(self, index: int) -> IncrementRangeAttribute:
+        if not 0 <= index < self.output_clocks:
+            raise ValueError(f"Index out of range, primitive does not have duty cycle with index {index}")
+        return getattr(self, f"clkout{index}_duty_cycle")
+
+    def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
+        self.clkin1_period.set_and_correct_value(frequency_to_period_ns_precision(f_in_1))
+        self.clkin1_period.on = True
 
     @abstractmethod
     def initialize_multiplier_and_divider_references(self):
@@ -98,28 +108,49 @@ class ClockPrimitive(ABC):
         self.d.value = d
         self.d.on = True
 
-        targeted_dividers = {index: divider
-                             for index, divider
-                             in enumerate(self.o_list)
-                             if index in desired_output_frequencies}
+        target_dividers = {index: divider
+                           for index, divider
+                           in enumerate(self.o_list)
+                           if index in desired_output_frequencies}
 
+        # Iterate through all outputs that are demanded
         for index, f_out in desired_output_frequencies.items():
-            rounded_up = targeted_dividers[index].correct_and_set_value_for_dividers((f_in_1 * m) / (d * f_out))
-            targeted_dividers[index].on = True
-            if not (fpga_f_out_min <= self.get_output_frequency(index) <= fpga_f_out_max):
-                if rounded_up:
-                    targeted_dividers[index].correct_and_set_value_for_dividers((f_in_1 * m) / (d * f_out),
-                                                                                do_floor=True)
-                else:
-                    targeted_dividers[index].correct_and_set_value_for_dividers((f_in_1 * m) / (d * f_out),
-                                                                                do_ceil=True)
+            # Most of the time the divider value cannot be exactly achieved
+            # So instead we have to chose between two values, one of them is greater than our desired value
+            # and the other one is less.
+            # They are called upper and lower bound in this case
+            lower_bound, upper_bound = target_dividers[index].get_bounds_based_on_value((f_in_1 * m) / (d * f_out))
 
+            # Get the output frequencies that would be generated by using the lower/upper bound divider
+            lower_bound_result = (m * f_in_1) / (lower_bound * d)
+            upper_bound_result = (m * f_in_1) / (upper_bound * d)
+
+            # It is possible for the generated frequency to go beyond the technical limitations (fpga_f_out_min/max)
+            # But at least one of them will not make the output frequency go beyond those limitations
+            if lower_bound_result > fpga_f_out_max:
+                # Chose upper_bound if lower_bound makes output frequency go beyond limitations
+                target_dividers[index].value = upper_bound
+            elif upper_bound_result < fpga_f_out_min:
+                # Chose lower_bound if upper_bound makes output frequency go beyond limitations
+                target_dividers[index].value = lower_bound
+            else:
+                # If both the lower and the upper bounds generated frequency is within limitations:
+                # chose the one that has a smaller relative error
+                if relative_error(f_out, upper_bound_result) > relative_error(f_out, lower_bound_result):
+                    target_dividers[index].value = lower_bound
+                else:
+                    target_dividers[index].value = upper_bound
+
+            # Activate the target divider
+            target_dividers[index].on = True
+
+        # All of the output dividers have been computed at this point
+        # This loop checks whether or not the generated output frequencies are within the deviation margin
+        # given by delta values
         actual_f_outs = self.get_output_frequency_dict()
         for index, f_out in desired_output_frequencies.items():
-            # Check if the produced frequencies are fitting according to delta
-            # Also check if the produced frequency is to high for the fpgas technical limitation
-            if actual_f_outs[index] > f_out + deltas[index] or actual_f_outs[index] < f_out - deltas[index] \
-                    or actual_f_outs[index] > fpga_f_out_max or actual_f_outs[index] < fpga_f_out_min:
+            if relative_error(actual_f_outs[index], f_out) > deltas[index]:
+                # Return False and therefore make higher level functions reject this configuration
                 return False
 
         return True
@@ -136,6 +167,8 @@ class Plle2Base(ClockPrimitive):
     clkin1_period: IncrementRangeAttribute
     divclk_divide: IncrementRangeAttribute
     clkout0_divide: OutputDivider
+
+    output_clocks = 6
 
     def __str__(self) -> str:
         attr_strings = [attr.instantiate_template() for attr in self.attributes if attr.on]
@@ -178,43 +211,15 @@ class Plle2Base(ClockPrimitive):
                "\n\n\t//Here could be your code for wires and output buffers" \
                "\n\nendmodule"
 
-    def get_output_clk_count(self) -> int:
-        return 6
-
-    def get_m_generator(self, start=None, end=None):
-        return self.clkfbout_mult.get_range_as_generator(start=start, end=end)
-
-    def get_d_generator(self, start=None, end=None):
-        return self.divclk_divide.get_range_as_generator(start=start, end=end)
-
-    def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
-        self.clkin1_period.set_and_correct_value(frequency_to_period_ns_precision(f_in_1))
-        self.clkin1_period.on = True
-
-    def get_output_frequency_dict(self) -> dict:
-        # Computes all output frequencies and puts them into a list
-        return {index: (self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value)) /
-                       (self.divclk_divide.value * out_divider.value)
-                for index, out_divider in enumerate(self.o_list)
-                if out_divider.on}
-
     def get_properties_dict(self):
         return {attr.name: attr.value for attr in self.attributes if attr.on}
-
-    def get_output_frequency(self, index: int) -> float:
-        if not 0 <= index <= 5:
-            raise ValueError(f"Index out of range, pll does not have f_out with index {index}")
-        if self.o_list[index].on:
-            return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
-                   (self.divclk_divide.value * self.o_list[index].value)
 
     def initialize_multiplier_and_divider_references(self):
         self.specification = "pll"
         self.m = self.clkfbout_mult
         self.d = self.divclk_divide
         self.o_list = [self.clkout0_divide, self.clkout1_divide, self.clkout2_divide, self.clkout3_divide,
-                       self.clkout4_divide, self.clkout5_divide
-                       ]
+                       self.clkout4_divide, self.clkout5_divide]
         self.attributes = [self.bandwidth, self.clkfbout_mult, self.clkfbout_phase, self.clkin1_period,
                            self.divclk_divide, self.ref_jitter1, self.startup_wait, self.clkout0_divide,
                            self.clkout1_divide, self.clkout2_divide, self.clkout3_divide, self.clkout4_divide,
@@ -237,11 +242,14 @@ class Mmcme2Base(ClockPrimitive):
     clkout0_divide_f: OutputDivider
 
     clkout6_divide: OutputDivider
-    clkout6_duty_cycle: RangeAttribute
+    clkout6_duty_cycle: IncrementRangeAttribute
     clkout6_phase: RangeAttribute
 
+    output_clocks = 7
+
     def __str__(self):
-        attr_strings = [attr.instantiate_template() for attr in self.attributes if attr.on]
+        attr_strings = [attr.instantiate_template() for attr in self.attributes
+                        if attr.on and attr.value != attr.default_value]
         return "\tMMCME2_BASE #(\n\t\t" + ",\n\t\t".join(attr_strings) + "\n\t)\n"
 
     def generate_template(self) -> str:
@@ -292,34 +300,8 @@ class Mmcme2Base(ClockPrimitive):
                "\n\n\t//Here could be your code for wires and output buffers" \
                "\n\nendmodule"
 
-    def get_output_clk_count(self) -> int:
-        return 7
-
-    def get_m_generator(self, start=None, end=None):
-        return self.clkfbout_mult_f.get_range_as_generator(start=start, end=end)
-
-    def get_d_generator(self, start=None, end=None):
-        return self.divclk_divide.get_range_as_generator(start=start, end=end)
-
-    def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
-        self.clkin1_period.set_and_correct_value(frequency_to_period_ns_precision(f_in_1))
-        self.clkin1_period.on = True
-
-    def get_output_frequency_dict(self) -> dict:
-        return {index: (self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value)) /
-                       (self.divclk_divide.value * out_divider.value)
-                for index, out_divider in enumerate(self.o_list)
-                if out_divider.on}
-
     def get_properties_dict(self):
         return {attr.name: attr.value for attr in self.attributes if attr.on}
-
-    def get_output_frequency(self, index: int) -> float:
-        if not 0 <= index <= 6:
-            raise ValueError(f"Index out of range, pll does not have f_out with index {index}")
-        if self.o_list[index].on:
-            return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
-                   (self.divclk_divide.value * self.o_list[index].value)
 
     def initialize_multiplier_and_divider_references(self):
         self.specification = "mmcm"
@@ -339,4 +321,3 @@ class Mmcme2Base(ClockPrimitive):
     @classmethod
     def get_new_instance(cls):
         return cls(**get_clock_attributes("Mmcme2Base"))
-
