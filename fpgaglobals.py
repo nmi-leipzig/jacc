@@ -35,9 +35,7 @@ def get_clock_attributes(clock_primitive: str):
 
         "startup_wait": BoolAttribute("START_WAIT", False, ".STARTUP_WAIT(@value@)"),
 
-        "clkfbout_phase": RangeAttribute("CLKFBOUT_PHASE", 0.0,
-                                         ".CLKFBOUT_PHASE(@value@)",
-                                         -360.0, 360.0, 3),  # TODO LOOK UP digits
+        "clkfbout_phase": IncrementRangeAttribute("CLKFBOUT_PHASE", 0.0, ".CLKFBOUT_PHASE(@value@)", 0.0, 360.0, 3, None),
 
         "clkout1_divide": OutputDivider("CLKOUT1_DIVIDE", 1, ".CLKOUT1_DIVIDE(@value@)", 1, 128, 0, 1),
 
@@ -69,17 +67,17 @@ def get_clock_attributes(clock_primitive: str):
                                                       0.99, 2, None),
 
         # TODO verify phase sig digit
-        "clkout0_phase": RangeAttribute("CLKOUT0_PHASE", 0.0, ".CLKOUT0_PHASE(@value@)", -360.0, 360.0, 3),
+        "clkout0_phase": IncrementRangeAttribute("CLKOUT0_PHASE", 0.0, ".CLKOUT0_PHASE(@value@)", -360.0, 360.0, 3, None),
 
-        "clkout1_phase": RangeAttribute("CLKOUT1_PHASE", 0.0, ".CLKOUT1_PHASE(@value@)", -360.0, 360.0, 3),
+        "clkout1_phase": IncrementRangeAttribute("CLKOUT1_PHASE", 0.0, ".CLKOUT1_PHASE(@value@)", -360.0, 360.0, 3, None),
 
-        "clkout2_phase": RangeAttribute("CLKOUT2_PHASE", 0.0, ".CLKOUT2_PHASE(@value@)", -360.0, 360.0, 3),
+        "clkout2_phase": IncrementRangeAttribute("CLKOUT2_PHASE", 0.0, ".CLKOUT2_PHASE(@value@)", -360.0, 360.0, 3, None),
 
-        "clkout3_phase": RangeAttribute("CLKOUT3_PHASE", 0.0, ".CLKOUT3_PHASE(@value@)", -360.0, 360.0, 3),
+        "clkout3_phase": IncrementRangeAttribute("CLKOUT3_PHASE", 0.0, ".CLKOUT3_PHASE(@value@)", -360.0, 360.0, 3, None),
 
-        "clkout4_phase": RangeAttribute("CLKOUT4_PHASE", 0.0, ".CLKOUT4_PHASE(@value@)", -360.0, 360.0, 3),
+        "clkout4_phase": IncrementRangeAttribute("CLKOUT4_PHASE", 0.0, ".CLKOUT4_PHASE(@value@)", -360.0, 360.0, 3, None),
 
-        "clkout5_phase": RangeAttribute("CLKOUT5_PHASE", 0.0, ".CLKOUT5_PHASE(@value@)", -360.0, 360.0, 3),
+        "clkout5_phase": IncrementRangeAttribute("CLKOUT5_PHASE", 0.0, ".CLKOUT5_PHASE(@value@)", -360.0, 360.0, 3, None),
     }
 
     clock_attributes_pll = {
@@ -111,7 +109,7 @@ def get_clock_attributes(clock_primitive: str):
         "clkout6_duty_cycle": IncrementRangeAttribute("CLKOUT6_DUTY_CYCLE", 0.5, ".CLKOUT6_DUTY_CYCLE(@value@)", 0.01,
                                                       0.99, 2, None),
 
-        "clkout6_phase": RangeAttribute("CLKOUT6_PHASE", 0.0, ".CLKOUT6_PHASE(@value@)", -360.0, 360.0, 3),
+        "clkout6_phase": IncrementRangeAttribute("CLKOUT6_PHASE", 0.0, ".CLKOUT6_PHASE(@value@)", -360.0, 360.0, 3, None),
     }
 
     if clock_primitive == "Plle2Base":

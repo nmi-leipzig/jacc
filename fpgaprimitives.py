@@ -8,7 +8,7 @@ class ClockPrimitive(ABC):
     bandwidth: ListAttribute
     ref_jitter1: IncrementRangeAttribute
     startup_wait: BoolAttribute
-    clkfbout_phase: RangeAttribute
+    clkfbout_phase: IncrementRangeAttribute
 
     clkout1_divide: OutputDivider
     clkout2_divide: OutputDivider
@@ -82,6 +82,11 @@ class ClockPrimitive(ABC):
         if not 0 <= index < self.output_clocks:
             raise ValueError(f"Index out of range, primitive does not have duty cycle with index {index}")
         return getattr(self, f"clkout{index}_duty_cycle")
+
+    def get_phase_shift(self, index: int) -> IncrementRangeAttribute:
+        if not 0 <= index < self.output_clocks:
+            raise ValueError(f"Index out of range, primitive does not have output phase shift with index {index}")
+        return getattr(self, f"clkout{index}_phase")
 
     def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
         self.clkin1_period.set_and_correct_value(frequency_to_period_ns_precision(f_in_1))

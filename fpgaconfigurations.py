@@ -19,6 +19,7 @@ class ClockingConfiguration:
                                        delta_2: float = 0.5, delta_3: float = 0.5,
                                        delta_4: float = 0.5, delta_5: float = 0.5,
                                        delta_6: float = 0.5, f_out_4_cascade=False) -> list:
+        # TODO Refactor and counter cascading
 
         # Filter desired output values that have not been set
         output_frequencies = {index: value
@@ -31,8 +32,12 @@ class ClockingConfiguration:
                   in enumerate([delta_0, delta_1, delta_2, delta_3, delta_4, delta_5, delta_6])
                   }
 
-        if self.primitive.get_output_clk_count() == 6 and 6 in output_frequencies:
-            return []
+        # Raise Error
+        # Happens if number of demanded ports does not fit the model
+        if len(output_frequencies.keys()) > self.primitive.output_clocks:
+            raise ValueError(f"Error, too many ports. {self.primitive.specification} does not support more than "
+                             f"{self.primitive.output_clocks} output ports. "
+                             f"Number of ports given: {len(output_frequencies)}")
 
         d_min, d_max, m_min, m_max = self.get_d_m_min_max(f_in_1)
 
@@ -80,7 +85,54 @@ class ClockingConfiguration:
                                          phase_shift_6: float = None, delta_0: float = 0.5, delta_1: float = 0.5,
                                          delta_2: float = 0.5, delta_3: float = 0.5, delta_4: float = 0.5,
                                          delta_5: float = 0.5, delta_6: float = 0.5):
-        pass
+
+        # Create dictionary of used phase shifts for quick access
+        phase_shifts = {index: value
+                        for index, value
+                        in enumerate([phase_shift_0, phase_shift_1, phase_shift_2, phase_shift_3, phase_shift_4,
+                                      phase_shift_5, phase_shift_6])
+                        if value is not None}
+        # Create a dictionary of used dictionaries for quick access
+        deltas = {index: value
+                  for index, value
+                  in enumerate([delta_0, delta_1, delta_2, delta_3, delta_4, delta_5, delta_6])}
+
+        # Initiate new List
+        updated_candidates = []
+
+        for config in self.configuration_candidates:
+            # The clkfbout_phase is used in order to make the the most out of the clock primitives attributes
+            config.clkfbout_phase.increment = 45 / config.d.value
+
+            # Iterate trough all the possible values of the clkfbout_phase attribute, starting with 0 (default value)
+            # It stops once it finds a value that satisfies all deltas
+            for cp_value in config.clkfbout_phase.get_range_as_generator():
+
+                viable_candidate = True
+                for index in phase_shifts:
+                    # Quicksave reference to current phase shift in order to not call a get function over and over again
+                    current_pshift = config.get_phase_shift(index)
+
+                    # Initiate increment and end value (in degrees)
+                    divider_value = config.get_output_divider(index).value
+                    current_pshift.increment = 45 / divider_value
+                    current_pshift.end = (63 / divider_value) * 360 + 7 * (45 / divider_value)
+
+                    # Set next best phase shift
+                    # The cp_value is subtracted from the target value since all clocks will the shifted backwards by
+                    # the value of clkfbout_phase (which is cp_value)
+                    current_pshift.set_and_correct_value(phase_shifts[index] - cp_value)
+                    current_pshift.on = True
+
+                    # Reject this combination of clkfbout_phase and output phase shifts if it goes beyond delta
+                    if relative_error(phase_shifts[index], current_pshift.value) > deltas[index]:
+                        viable_candidate = False
+                        break
+
+                # Stop the cp_value loop if a viable candidate has been found
+                if viable_candidate:
+                    updated_candidates.append(config)
+                    break
 
     def configure_duty_cycle_parameters(self, duty_cycle_0: float = None, duty_cycle_1: float = None,
                                         duty_cycle_2: float = None, duty_cycle_3: float = None,
@@ -99,7 +151,7 @@ class ClockingConfiguration:
                   for index, value
                   in enumerate([delta_0, delta_1, delta_2, delta_3, delta_4, delta_5, delta_6])}
 
-        # Initiate new
+        # Initiate new List
         updated_candidates = []
 
         for config in self.configuration_candidates:
@@ -111,7 +163,7 @@ class ClockingConfiguration:
                 # Initiate the increment attribute based on the duty cycle restrictions
                 # WARNING: The next lines restriction is derived from a list of about 210 tests
                 # It may be possible for this formula to not work in certain unknown edge cases
-                divider_value = config.get_output_divider.value
+                divider_value = config.get_output_divider(index).value
                 current_dc.increment = 1 / (divider_value * 2)
                 current_dc.start = 1 / divider_value
 

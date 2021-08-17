@@ -70,7 +70,7 @@ class IncrementRangeAttribute(RangeAttribute):
     increment: Any
 
     def set_and_correct_value(self, target_value: float):
-
+        # TODO improve this
         # Skip everything below if the target value is out of bounds or equal to the min/max value
         if target_value <= self.start:
             self.value = self.start
@@ -135,7 +135,7 @@ class OutputDivider(RangeAttribute):
         possible_values.sort()
         lower_bound_index = bisect(possible_values, value)
 
-        # Return the lower and upper bound.
+        # Return the lower and upper bound as a tuple.
         return possible_values[lower_bound_index], possible_values[lower_bound_index + 1]
 
 
