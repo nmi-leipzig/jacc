@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 from bisect import bisect
+from math import ceil, floor
+from utility import relative_error
 
 
 @dataclass
@@ -70,7 +72,6 @@ class IncrementRangeAttribute(RangeAttribute):
     increment: Any
 
     def set_and_correct_value(self, target_value: float):
-        # TODO improve this
         # Skip everything below if the target value is out of bounds or equal to the min/max value
         if target_value <= self.start:
             self.value = self.start
@@ -79,24 +80,18 @@ class IncrementRangeAttribute(RangeAttribute):
             self.value = self.end
             return
 
-        lower_bound = self.start
-
-        # A counter for multiplication is used here.
-        # Multiplication will lead to less floating point errors than increment by adding
-        counter = 0
-
-        # Inefficient but easy to read loop
-        # Could be replaced with on modulo assignment in theory
-        # But should not be replaced with modulo in practice because of annoying floating point errors
-        while lower_bound < target_value and lower_bound < self.end:
-            lower_bound = self.increment * counter + self.start
-            counter += 1
+        # The value can only be increased in "self.increment" steps
+        # The target value is often in between two of these steps
+        # These two steps (lower and upper bound) are determined here:
+        factor = (target_value - self.start) / self.increment
+        lower_bound = floor(factor) * self.increment + self.start
+        upper_bound = ceil(factor) * self.increment + self.start
 
         # Chose between lower and upper bound the one that's closer to the target value
-        if abs(lower_bound - target_value) < abs(lower_bound + self.increment - target_value):
-            self.value = round(lower_bound, self.decimal_places)
+        if relative_error(target_value, lower_bound) < relative_error(target_value, upper_bound):
+            self.value = lower_bound
         else:
-            self.value = round(lower_bound + self.increment, self.decimal_places)
+            self.value = upper_bound
 
     def set_value(self, value):
         # Check if number is of float or int and throw error if needed
