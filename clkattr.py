@@ -25,20 +25,15 @@ class ClockAttribute(ABC):
     def set_value(self, value):
         pass
 
-    def instantiate_template(self):
-        return self.template.replace("@value@", str(self.value))
+    @abstractmethod
+    def instantiate_template(self) -> str:
+        pass
 
     def __eq__(self, other):
-        if not isinstance(other, type(self)):
-            raise TypeError(f"Error, cannot compare \"{type(self)}\" and \"{type(other)}\"")
-
-        return self.name == other.name and self.value == other.value and self.on == other.on
+        return self.name == other.name and self.value == other.value and self.on == other.on and type(self) == type(other)
 
     def __ne__(self, other):
-        if not isinstance(other, type(self)):
-            raise TypeError(f"Error, cannot compare \"{type(self)}\" and \"{type(other)}\"")
-
-        return not (self.name == other.name and self.value == other.value and self.on == other.on)
+        return not (self.name == other.name and self.value == other.value and self.on == other.on and type(self) == type(other))
 
 
 @dataclass
@@ -59,7 +54,7 @@ class RangeAttribute(ClockAttribute):
 
         self.value = value
 
-    def instantiate_template(self):
+    def instantiate_template(self) -> str:
         return self.template.replace("@value@", f"{self.value:.{self.decimal_places}f}")
 
 
@@ -71,7 +66,13 @@ class IncrementRangeAttribute(RangeAttribute):
     """
     increment: Any
 
-    def set_and_correct_value(self, target_value: float):
+    def set_and_correct_value(self, target_value):
+        """
+        A value as close as possible to the target_value is set
+        set_value is inherited from RangeAttribute and can therefore still be used as a shortcut if needed
+        """
+        # ValueError check is not needed since it will be thrown anyway if comparison of str and numbers is attempted
+
         # Skip everything below if the target value is out of bounds or equal to the min/max value
         if target_value <= self.start:
             self.value = self.start
@@ -86,6 +87,8 @@ class IncrementRangeAttribute(RangeAttribute):
         factor = (target_value - self.start) / self.increment
         lower_bound = floor(factor) * self.increment + self.start
         upper_bound = ceil(factor) * self.increment + self.start
+        if self.end < upper_bound:
+            upper_bound = self.end
 
         # Chose between lower and upper bound the one that's closer to the target value
         if relative_error(target_value, lower_bound) < relative_error(target_value, upper_bound):
@@ -93,51 +96,70 @@ class IncrementRangeAttribute(RangeAttribute):
         else:
             self.value = upper_bound
 
-    def set_value(self, value):
-        # Check if number is of float or int and throw error if needed
-        if not (isinstance(value, int) or isinstance(value, float)):
-            raise TypeError(f"Wrong type used. Value \"{value}\" has invalid type \"{type(value)}\"")
-
-        self.set_and_correct_value(value)
-
     def get_range_as_generator(self, start=None, end=None):
-        current_value = self.start if start is None or start < self.start else start
+        """
+        Generator that goes through all possible values for the instance of RangeIncrementAttribute
+        """
+        generator_start = self.start if start is None or start < self.start else start
         generator_end = self.end if end is None or end > self.end else end
+        # Multiplication is used here because it is safer than Addition when it comes to floating point precision
+        factor = 0
 
-        while current_value <= generator_end:
-            yield current_value
-            current_value += self.increment
+        while generator_start + factor * self.increment < generator_end:
+            yield generator_start + factor * self.increment
+            factor += 1
+        yield generator_end
 
 
 @dataclass
 class OutputDivider(RangeAttribute):
     """
-    Class specifically made for the output dividers (like CLKOUT1_DIVIDER).
+    Class specifically made for the output dividers (like CLKOUT1_DIVIDE).
     It seems very similar to IncrementRangeAttribute but it functionality is different.
     It does not use any of IncrementRangeAttributes' methods and does therefore not inherit from it.
     """
     increment: float
-    float_divider: bool = False
+    # A list of values that can be set, but are not within the "range"
     additional_values: list = False
 
     def set_value(self, value):
+        """
+        Inherited method from RangeAttribute is overwritten to a None returning method since ot should not be used by
+        this class
+        """
         pass
 
-    def get_bounds_based_on_value(self, value):
-        possible_values = self.additional_values + [self.increment * n
+    def get_bounds_based_on_value(self, target_value):
+        """
+        The target_value is often between two possible values.
+        These two values are called the lower and upper bound in this case.
+        This method returns those two bounds as a tuple.
+        The choice between the two bounds depends on external values
+        and is therefore done by another class for Separation Of Concerns
+        """
+        # ValueError check is not needed since it will be thrown anyway if bisect of str and numbers is attempted
+
+        # This list comprehension way is rather inefficient
+        # But it looks cleaner than going through "additional_values" and values within the range separately
+        possible_values = self.additional_values + [self.start + self.increment * n
                                                     for n
-                                                    in range(self.start, (self.end - self.start) / self.increment)]
+                                                    in range(round((self.end - self.start) / self.increment) + 1)]
         possible_values.sort()
-        lower_bound_index = bisect(possible_values, value)
+        # Usage of the bisect_left method from bisect https://docs.python.org/3.7/library/bisect.html#module-bisect
+        upper_bound_index = bisect(possible_values, target_value)
+        if upper_bound_index == len(possible_values):
+            upper_bound_index -= upper_bound_index
 
         # Return the lower and upper bound as a tuple.
-        return possible_values[lower_bound_index], possible_values[lower_bound_index + 1]
+        return possible_values[upper_bound_index - 1], possible_values[upper_bound_index]
+        # What if the list only contains one element?
+        # -> Should never happen in the given fpga scenario
 
 
 @dataclass
 class ListAttribute(ClockAttribute):
     """
-    Class for Attributes whose values are limited to a specific list of predefined values.
+    Class for Attributes whose values are limited to a specific (and small) list of predefined values.
     """
     values: list
 
@@ -147,7 +169,7 @@ class ListAttribute(ClockAttribute):
 
         self.value = value
 
-    def instantiate_template(self):
+    def instantiate_template(self) -> str:
         return self.template.replace("@value@", f"\"{self.value}\"")
 
 
@@ -158,16 +180,13 @@ class BoolAttribute(ClockAttribute):
     It may seem redundant, but it takes care of TypeErrors and the template instantiation
     """
 
-    def is_valid(self) -> bool:
-        return isinstance(self.value, bool)
-
     def set_value(self, value: bool):
-        if not isinstance(self.value, bool):
+        if not isinstance(value, bool):
             raise TypeError(f"Error, value should be of type bool. Type given was \"{type(value)}\"")
 
         self.value = value
 
-    def instantiate_template(self):
+    def instantiate_template(self) -> str:
         if self.value:
             return self.template.replace("@value@", "TRUE")
         else:
