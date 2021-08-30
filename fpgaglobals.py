@@ -93,7 +93,7 @@ def get_clock_attributes(clock_primitive: str):
 
     clock_attributes_mmcm = {
         "clkout0_divide_f": OutputDivider("CLKOUT0_DIVIDE_F", 1, ".CLKOUT0_DIVIDE_F(@value@)", 2.0, 128.0, 3, 0.125,
-                                          float_divider=True, additional_values=[1]),
+                                          additional_values=[1]),
 
         "clkfbout_mult_f": IncrementRangeAttribute("CLKFBOUT_MULT_F", 5.0, ".CLKFBOUT_MULT_F(@value@)", 2.0, 64.0, 3,
                                                    0.125),

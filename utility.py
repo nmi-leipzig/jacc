@@ -8,4 +8,4 @@ def period_to_frequency_mhz_precision(period_in_ns: float) -> float:
 
 
 def relative_error(target_value, actual_value):
-    return abs(target_value - actual_value) / target_value
+    return abs((target_value - actual_value) / target_value)

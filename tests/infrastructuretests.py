@@ -1,40 +1,95 @@
 import unittest
+from clkattr import *
 from fpgaglobals import get_clock_attributes
 from fpgaglobals import FPGA_MODELS
 
 
 # Test Cases for the ClockAttribute classes (and others that inherit from ClockAttribute)
-class PrimitiveAttributeTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.temp_dict_pll = get_clock_attributes("Plle2Base")
-        self.temp_dict_mmcm = get_clock_attributes("Mmcme2Base")
+class ClockAttributeTest(unittest.TestCase):
+
+    def test_base_class(self):
+        # Another class that inherits from ClockAttribute is used here, since ClockAttribute is a abstract class
+
+        # Setup
+        attribute = ListAttribute("", "Dieter", "", ["Dieter", "Jürgen", "Friedrich"])
+        another_attribute = ListAttribute("", "Dieter", "", ["Dieter", "Jürgen", "Friedrich"])
+
+        # Test default value
+        self.assertEqual(attribute.value, "Dieter")
+
+        # Verify that two Attribute of different types return False
+        attribute_of_another_type = BoolAttribute("", "Dieter", "")
+        self.assertNotEqual(attribute, attribute_of_another_type)
+
+        # Test eq
+        self.assertEqual(attribute, another_attribute)
+
+        # Test ne
+        attribute.value = "Friedrich"
+        self.assertNotEqual(attribute, another_attribute)
 
     def test_range_attribute(self):
-        attribute = self.temp_dict_mmcm["clkfbout_mult_f"]
+        # Setup
+        attribute = RangeAttribute("CLKIN_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)", 0.0, 52.631, 3)
 
-        # Set value to something valid and test
-        attribute.value = 11.5
-        self.assertTrue(attribute.is_valid())
+        # Test set_value
+        self.assertRaises(TypeError, attribute.set_value, "")
+        self.assertRaises(ValueError, attribute.set_value, 53)
 
-        # Set value to something invalid and test
-        attribute.value = 64.001
-        self.assertFalse(attribute.is_valid())
+        for value in [52.631, 0.0, 26.5]:
+            attribute.set_value(value)
+            self.assertEqual(attribute.value, value)
 
-    # Test creation of ListAttribute from xml and test validation function
+        # Test template
+        self.assertEqual(attribute.instantiate_template(), ".CLKIN1_PERIOD(26.500)")
+
+    def test_increment_range_attribute(self):
+        # Setup
+        attribute = IncrementRangeAttribute("CLKOUT0_DUTY_CYCLE", 0.5, ".CLKOUT0_DUTY_CYCLE(@value@)", 0.00, 0.99, 2,
+                                            1/7)
+
+        # Test set_and_correct_value
+        for value, set_value in [(0.9899, 0.99), (0.99, 0.99), (-1, 0.00), (1, 0.99), (0.5, 4 / 7)]:
+            attribute.set_and_correct_value(value)
+            self.assertEqual(attribute.value, set_value)
+
+        # Test get_range_as_generator
+        self.assertEqual(list(attribute.get_range_as_generator()), [factor * (1 / 7) for factor in range(7)] + [0.99])
+
+    def test_output_divider_value(self):
+        # Setup
+        attribute = OutputDivider("CLKOUT0_DIVIDE_F", 1, ".CLKOUT0_DIVIDE_F(@value@)", 2.0, 128.0, 3, 0.125,
+                                  additional_values=[1])
+
+        # Test get_bounds_based_on_value
+        for value, bounds in [(1.3, (1, 2.0)), (0.5, (128.0, 1)), (7.3, (7.25, 7.375)), (127.9, (127.875, 128)),
+                              (128, (128.0, 1)), (129, (128.0, 1))]:
+            self.assertEqual(attribute.get_bounds_based_on_value(value), bounds)
+
     def test_list_attribute(self):
-        attribute = self.temp_dict_mmcm["bandwidth"]
+        # Setup
+        attribute = ListAttribute("BANDWIDTH", "OPTIMIZED", ".BANDWIDTH(@value@)", ["OPTIMIZED", "HIGH", "LOW"])
 
-        # Test "values" attribute
-        self.assertTrue(attribute.values == ["OPTIMIZED", "HIGH", "LOW"])
+        # Test set_value
+        self.assertRaises(ValueError, attribute.set_value, "OTTO")
+        self.assertEqual(attribute.value, "OPTIMIZED")
+        attribute.set_value("HIGH")
+        self.assertEqual(attribute.value, "HIGH")
 
-        # Set value to something valid and test
-        attribute.set_value("OPTIMIZED")
-        self.assertTrue(attribute.is_valid())
+        # Test template
+        self.assertEqual(attribute.instantiate_template(), ".BANDWIDTH(\"HIGH\")")
 
-        # Set value to something invalid and test
-        attribute.set_value("OTTO")
-        self.assertFalse(attribute.is_valid())
+    def test_bool_attribute(self):
+        # Setup
+        attribute = BoolAttribute("START_WAIT", False, ".STARTUP_WAIT(@value@)")
 
+        # Test set_value
+        self.assertRaises(TypeError, attribute.set_value, "OTTO")
+        attribute.set_value(True)
+        self.assertTrue(attribute.value)
+
+        # Test template
+        self.assertEqual(attribute.instantiate_template(), ".STARTUP_WAIT(TRUE)")
 
 # Test Cases for the get_clock_attributes function
 class AttributeListTest(unittest.TestCase):
@@ -76,11 +131,6 @@ class AttributeListTest(unittest.TestCase):
         # Reset dictionary
         self.temp_dict_pll = get_clock_attributes("Plle2Base")
         self.assertEqual(self.temp_dict_pll["bandwidth"].value, "OPTIMIZED")
-
-
-class AttributeFunctionalityTest(unittest.TestCase):
-    """Tests features like  the __eq__ method of ClockAttribute"""
-    # TODO
 
 
 # Test Case for the FPGAModel class
