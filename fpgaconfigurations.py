@@ -4,11 +4,14 @@ from math import floor, ceil
 from utility import relative_error
 
 
-class ClockingConfiguration:
+class ClockingConfigurator:
 
     def __init__(self, fpga: FPGAModel, primitive: ClockPrimitive):
         self.fpga = fpga
         self.primitive = primitive
+        # Caching f_out_min and max since they will be used a lot (this reduces unnecessary calls and code duplicates)
+        self.f_out_min = fpga.get_f_out_min(self.primitive.specification)
+        self.f_out_max = fpga.get_f_out_max(self.primitive.specification)
         self.configuration_candidates = []
         self.selected_candidate = None
 
@@ -19,7 +22,6 @@ class ClockingConfiguration:
                                        delta_2: float = 0.5, delta_3: float = 0.5,
                                        delta_4: float = 0.5, delta_5: float = 0.5,
                                        delta_6: float = 0.5, f_out_4_cascade=False) -> list:
-        # TODO Refactor and counter cascading
 
         # Filter desired output values that have not been set
         output_frequencies = {index: value
@@ -33,11 +35,10 @@ class ClockingConfiguration:
                   }
 
         # Raise Error
-        # Happens if number of demanded ports does not fit the model
-        if len(output_frequencies.keys()) > self.primitive.output_clocks:
+        # Happens if number of demanded number of ports do not fit the model
+        if 6 in output_frequencies and self.primitive.specification == "pll":
             raise ValueError(f"Error, too many ports. {self.primitive.specification} does not support more than "
-                             f"{self.primitive.output_clocks} output ports. "
-                             f"Number of ports given: {len(output_frequencies)}")
+                             "6 output ports.")
 
         d_min, d_max, m_min, m_max = self.get_d_m_min_max(f_in_1)
 
@@ -52,14 +53,42 @@ class ClockingConfiguration:
                 if (m_temp / d_temp) in checked_m_d_combinations:
                     continue
 
-                config = self.primitive.get_new_instance()
-                config.set_in_period_based_on_frequency(f_in_1)
-                found = config.calc_approximated_o_dividers(m_temp, d_temp, f_in_1, output_frequencies, deltas,
-                                                            self.fpga.get_f_out_min(self.primitive.specification),
-                                                            self.fpga.get_f_out_max(self.primitive.specification))
+                config = self.get_new_configuration_with_o_dividers(f_in_1, m_temp, d_temp, output_frequencies, deltas)
 
-                if found:
+                if config:
                     valid_configurations.append(config)
+                # The block below is only relevant if the cascade of the divider 6 into the divider 4 is activated
+                elif self.primitive.specification == "mmcm" and f_out_4_cascade and 4 in output_frequencies:
+                    # Use a copy of the dictionary which uses a different value for the output frequency 4
+                    # though the actual output frequency 4 will not change because of the cascade
+                    temp_output_frequencies = output_frequencies.copy()
+                    temp_conf = self.primitive.get_new_instance()
+
+                    # Take the output target output frequency 6 into account (if it exists)
+                    if 6 in output_frequencies and output_frequencies[6] > output_frequencies[4]:
+                        o6_value = temp_conf.approximate_o_divider(6, m_temp, d_temp, f_in_1, output_frequencies[6],
+                                                                   deltas[6], self.f_out_min, self.f_out_max)
+                        temp_output_frequencies[4] = temp_output_frequencies[4] * o6_value
+
+                    elif 6 not in output_frequencies:
+                        # Choose the greatest divider possible for the output frequency 6 if it is not used
+                        # The greatest divider is chosen here since the cascade is used and only if
+                        # the divider 4 was not big enough
+                        o6_value = temp_conf.approximate_o_divider(6, m_temp, d_temp, f_in_1, self.f_out_min, 1.0,
+                                                                   self.f_out_min, self.f_out_max)
+                        temp_output_frequencies[6] = self.f_out_min
+                        # This looks dangerous
+                        temp_output_frequencies[4] = temp_output_frequencies[4] * o6_value
+
+                    config = self.get_new_configuration_with_o_dividers(f_in_1, m_temp, d_temp, temp_output_frequencies,
+                                                                        deltas)
+                    if config:
+                        # Activate the divider
+                        config.clkout4_cascade.set_value(True)
+                        config.clkout4_cascade.on = True
+
+                        valid_configurations.append(config)
+
                 checked_m_d_combinations.append(m_temp / d_temp)
 
         self.configuration_candidates = valid_configurations
@@ -78,6 +107,15 @@ class ClockingConfiguration:
         m_max = floor((self.fpga.get_vco_max(self.primitive.specification) * d_max) / f_in)
 
         return d_min, d_max, m_min, m_max
+
+    def get_new_configuration_with_o_dividers(self, f_in_1: float, m, d, output_frequencies: dict, deltas: dict):
+        config = self.primitive.get_new_instance()
+        config.set_in_period_based_on_frequency(f_in_1)
+        found = config.configure_approximated_o_dividers(m, d, f_in_1, output_frequencies, deltas, self.f_out_min,
+                                                         self.f_out_max)
+        if found:
+            return config
+        return False
 
     def configure_phase_shift_parameters(self, phase_shift_0: float = None, phase_shift_1: float = None,
                                          phase_shift_2: float = None, phase_shift_3: float = None,

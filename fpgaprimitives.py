@@ -95,7 +95,7 @@ class ClockPrimitive(ABC):
     @abstractmethod
     def initialize_multiplier_and_divider_references(self):
         """
-        Specializations of this class have to implement m, d and o's in order for "calc_approximated_o_dividers" to work
+        Specializations of this class have to implement m, d and o's in order for "configure_approximated_o_dividers" to work
         Attributes named m, d, (and o's) for all specializations of this class would be sufficient in theory
         But those variable names alone might be misleading.
         Therefore references are set on top of non-common values like:
@@ -105,8 +105,8 @@ class ClockPrimitive(ABC):
         """
         pass
 
-    def calc_approximated_o_dividers(self, m, d, f_in_1, desired_output_frequencies: dict, deltas: dict,
-                                     fpga_f_out_min: float, fpga_f_out_max: float):
+    def configure_approximated_o_dividers(self, m, d, f_in_1, desired_output_frequencies: dict, deltas: dict,
+                                          fpga_f_out_min: float, fpga_f_out_max: float):
 
         self.m.value = m
         self.m.on = True
@@ -308,6 +308,17 @@ class Mmcme2Base(ClockPrimitive):
     def get_properties_dict(self):
         return {attr.name: attr.value for attr in self.attributes if attr.on}
 
+    def get_output_frequency(self, index: int) -> float:
+        if not 0 <= index < self.output_clocks:
+            raise ValueError(f"Index out of range, pll does not have f_out with index {index}")
+
+        if index == 4 and self.clkout4_cascade.on:
+            return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
+                   (self.divclk_divide.value * self.o_list[index].value * self.o_list[6].value)
+        elif self.o_list[index].on:
+            return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
+                   (self.divclk_divide.value * self.o_list[index].value)
+
     def initialize_multiplier_and_divider_references(self):
         self.specification = "mmcm"
         self.m = self.clkfbout_mult_f
@@ -322,6 +333,48 @@ class Mmcme2Base(ClockPrimitive):
                            self.clkout4_duty_cycle, self.clkout5_duty_cycle, self.clkout6_duty_cycle,
                            self.clkout0_phase, self.clkout1_phase, self.clkout2_phase, self.clkout3_phase,
                            self.clkout4_phase, self.clkout5_phase, self.clkout6_phase]
+
+    def approximate_o_divider(self, index, m, d, f_in_1, target_f_out: float, delta: float, fpga_f_out_min: float,
+                              fpga_f_out_max: float):
+        self.m.value = m
+        self.d.value = d
+
+        target_divider = self.o_list[index]
+
+        # Get the lower and upper bound (for more information look up "configure_approximated_o_dividers")
+        lower_bound, upper_bound = target_divider.get_bounds_based_on_value((f_in_1 * m) / (d * target_f_out))
+
+        lower_bound_result = (m * f_in_1) / (lower_bound * d)
+        upper_bound_result = (m * f_in_1) / (upper_bound * d)
+
+        # It is possible for the generated frequency to go beyond the technical limitations (fpga_f_out_min/max)
+        # But at least one of them will not make the output frequency go beyond those limitations
+        if lower_bound_result > fpga_f_out_max:
+            # Chose upper_bound if lower_bound makes output frequency go beyond limitations
+            target_divider.value = upper_bound
+        elif upper_bound_result < fpga_f_out_min:
+            # Chose lower_bound if upper_bound makes output frequency go beyond limitations
+            target_divider.value = lower_bound
+        else:
+            # If both the lower and the upper bounds generated frequency is within limitations:
+            # chose the one that has a smaller relative error
+            if relative_error(target_f_out, upper_bound_result) > relative_error(target_f_out, lower_bound_result):
+                target_divider.value = lower_bound
+            else:
+                target_divider.value = upper_bound
+
+        # Activate the target divider
+        target_divider.on = True
+
+        # All of the output dividers have been computed at this point
+        # This loop checks whether or not the generated output frequencies are within the deviation margin
+        # given by delta values
+        actual_f_outs = self.get_output_frequency(index)
+        if relative_error(actual_f_outs[index], target_f_out) > delta:
+            # Return False and therefore make higher level functions reject this configuration
+            return False
+
+        return target_divider.value
 
     @classmethod
     def get_new_instance(cls):

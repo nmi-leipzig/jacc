@@ -145,7 +145,7 @@ class OutputDivider(RangeAttribute):
                                                     for n
                                                     in range(round((self.end - self.start) / self.increment) + 1)]
         possible_values.sort()
-        # Usage of the bisect_left method from bisect https://docs.python.org/3.7/library/bisect.html#module-bisect
+        # Usage of the bisect method from bisect https://docs.python.org/3.7/library/bisect.html#module-bisect
         upper_bound_index = bisect(possible_values, target_value)
         if upper_bound_index == len(possible_values):
             upper_bound_index -= upper_bound_index
