@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from bisect import bisect
 from math import ceil, floor
@@ -30,10 +30,12 @@ class ClockAttribute(ABC):
         pass
 
     def __eq__(self, other):
-        return self.name == other.name and self.value == other.value and self.on == other.on and type(self) == type(other)
+        return self.name == other.name and self.value == other.value and self.on == other.on \
+               and type(self) == type(other)
 
     def __ne__(self, other):
-        return not (self.name == other.name and self.value == other.value and self.on == other.on and type(self) == type(other))
+        return not (self.name == other.name and self.value == other.value and self.on == other.on
+                    and type(self) == type(other))
 
 
 @dataclass
@@ -120,7 +122,8 @@ class OutputDivider(RangeAttribute):
     """
     increment: float
     # A list of values that can be set, but are not within the "range"
-    additional_values: list = False
+    # Also https://docs.python.org/3/library/dataclasses.html#dataclasses.field
+    additional_values: list = field(default_factory=lambda: [])
 
     def set_value(self, value):
         """
@@ -185,6 +188,7 @@ class BoolAttribute(ClockAttribute):
             raise TypeError(f"Error, value should be of type bool. Type given was \"{type(value)}\"")
 
         self.value = value
+        self.on = True
 
     def instantiate_template(self) -> str:
         if self.value:
