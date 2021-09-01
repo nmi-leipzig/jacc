@@ -93,7 +93,9 @@ class IncrementRangeAttribute(RangeAttribute):
             upper_bound = self.end
 
         # Chose between lower and upper bound the one that's closer to the target value
-        if relative_error(target_value, lower_bound) < relative_error(target_value, upper_bound):
+        upper_bound_error = relative_error(target_value, upper_bound) if target_value != 0 else upper_bound
+        lower_bound_error = relative_error(target_value, lower_bound) if target_value != 0 else lower_bound
+        if lower_bound_error < upper_bound_error:
             self.value = lower_bound
         else:
             self.value = upper_bound

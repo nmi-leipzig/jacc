@@ -47,24 +47,23 @@ def get_clock_attributes(clock_primitive: str):
 
         "clkout5_divide": OutputDivider("CLKOUT5_DIVIDE", 1, ".CLKOUT5_DIVIDE(@value@)", 1, 128, 0, 1),
 
-        "clkout0_duty_cycle": IncrementRangeAttribute("CLKOUT0_DUTY_CYCLE", 0.5, ".CLKOUT0_DUTY_CYCLE(@value@)", 0.01,
-                                                      0.99, 2, None),
+        "clkout0_duty_cycle": IncrementRangeAttribute("CLKOUT0_DUTY_CYCLE", 0.5, ".CLKOUT0_DUTY_CYCLE(@value@)", 0.001,
+                                                      0.999, 3, None),
 
-        # TODO verify duty cycle significant digit
-        "clkout1_duty_cycle": IncrementRangeAttribute("CLKOUT1_DUTY_CYCLE", 0.5, ".CLKOUT1_DUTY_CYCLE(@value@)", 0.01,
-                                                      0.99, 2, None),
+        "clkout1_duty_cycle": IncrementRangeAttribute("CLKOUT1_DUTY_CYCLE", 0.5, ".CLKOUT1_DUTY_CYCLE(@value@)", 0.001,
+                                                      0.999, 3, None),
 
         "clkout2_duty_cycle": IncrementRangeAttribute("CLKOUT2_DUTY_CYCLE", 0.5, ".CLKOUT2_DUTY_CYCLE(@value@)", 0.01,
-                                                      0.99, 2, None),
+                                                      0.999, 3, None),
 
-        "clkout3_duty_cycle": IncrementRangeAttribute("CLKOUT3_DUTY_CYCLE", 0.5, ".CLKOUT3_DUTY_CYCLE(@value@)", 0.01,
-                                                      0.99, 2, None),
+        "clkout3_duty_cycle": IncrementRangeAttribute("CLKOUT3_DUTY_CYCLE", 0.5, ".CLKOUT3_DUTY_CYCLE(@value@)", 0.001,
+                                                      0.999, 3, None),
 
-        "clkout4_duty_cycle": IncrementRangeAttribute("CLKOUT4_DUTY_CYCLE", 0.5, ".CLKOUT4_DUTY_CYCLE(@value@)", 0.01,
-                                                      0.99, 2, None),
+        "clkout4_duty_cycle": IncrementRangeAttribute("CLKOUT4_DUTY_CYCLE", 0.5, ".CLKOUT4_DUTY_CYCLE(@value@)", 0.001,
+                                                      0.999, 3, None),
 
-        "clkout5_duty_cycle": IncrementRangeAttribute("CLKOUT5_DUTY_CYCLE", 0.5, ".CLKOUT5_DUTY_CYCLE(@value@)", 0.01,
-                                                      0.99, 2, None),
+        "clkout5_duty_cycle": IncrementRangeAttribute("CLKOUT5_DUTY_CYCLE", 0.5, ".CLKOUT5_DUTY_CYCLE(@value@)", 0.001,
+                                                      0.999, 3, None),
 
         # TODO verify phase sig digit
         "clkout0_phase": IncrementRangeAttribute("CLKOUT0_PHASE", 0.0, ".CLKOUT0_PHASE(@value@)", -360.0, 360.0, 3, None),
@@ -85,7 +84,7 @@ def get_clock_attributes(clock_primitive: str):
 
         "divclk_divide": IncrementRangeAttribute("DIVCLK_DIVIDE", 1, ".DIVCLK_DIVIDE(@value@)", 1, 56, 0, 1),
 
-        "clkin1_period": RangeAttribute("CLKIN_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)", 0.0, 52.631, 3),# TODO LOOK UP digits
+        "clkin1_period": RangeAttribute("CLKIN_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)", 0.0, 1000 / 19, 3),
 
         "clkout0_divide": OutputDivider("CLKOUT0_DIVIDE", 1, ".CLKOUT0_DIVIDE(@value@)", 1, 128, 0, 1)
 
@@ -95,16 +94,16 @@ def get_clock_attributes(clock_primitive: str):
         "clkfbout_mult_f": IncrementRangeAttribute("CLKFBOUT_MULT_F", 5.0, ".CLKFBOUT_MULT_F(@value@)", 2.0, 64.0, 3,
                                                    0.125),
 
-        "clkin1_period": RangeAttribute("CLKIN1_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)", 0.0, 100.0, 3),  # TODO LOOK UP digits
+        "clkin1_period": RangeAttribute("CLKIN1_PERIOD", 0.0, ".CLKIN1_PERIOD(@value@)", 0.0, 100.0, 3),
 
-        "divclk_divide": IncrementRangeAttribute("DIVCLK_DIVIDE", 1, ".DIVCLK_DIVIDE(@value@)", 1, 106, 1, 0),
+        "divclk_divide": IncrementRangeAttribute("DIVCLK_DIVIDE", 1, ".DIVCLK_DIVIDE(@value@)", 1, 106, 0, 1),
 
         "clkout4_cascade": BoolAttribute("CLKOUT4_CASCADE", False, ".CLKOUT4_CASCADE(@value@)"),
 
         "clkout6_divide": OutputDivider("CLKOUT6_DIVIDE", 1, ".CLKOUT6_DIVIDE(@value@)", 1, 128, 0, 1),
 
-        "clkout6_duty_cycle": IncrementRangeAttribute("CLKOUT6_DUTY_CYCLE", 0.5, ".CLKOUT6_DUTY_CYCLE(@value@)", 0.01,
-                                                      0.99, 2, None),
+        "clkout6_duty_cycle": IncrementRangeAttribute("CLKOUT6_DUTY_CYCLE", 0.5, ".CLKOUT6_DUTY_CYCLE(@value@)", 0.001,
+                                                      0.999, 3, None),
 
         "clkout6_phase": IncrementRangeAttribute("CLKOUT6_PHASE", 0.0, ".CLKOUT6_PHASE(@value@)", -360.0, 360.0, 3, None),
 

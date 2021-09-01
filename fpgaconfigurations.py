@@ -49,16 +49,21 @@ class ClockingConfigurator:
 
         for m_temp in self.primitive.get_m_generator(start=m_min, end=m_max):
             for d_temp in self.primitive.get_d_generator(start=d_min, end=d_max):
-
-                if (m_temp / d_temp) in checked_m_d_combinations:
+                # The generator does limit m and d already
+                # But there are still m, d combinations that are filtered here
+                if not (self.fpga.get_vco_min(self.primitive.specification) <= (f_in_1 * m_temp) / d_temp
+                        <= self.fpga.get_vco_max(self.primitive.specification)):
                     continue
-
+                if m_temp / d_temp in checked_m_d_combinations:
+                    continue
                 config = self.get_new_configuration_with_o_dividers(f_in_1, m_temp, d_temp, output_frequencies, deltas)
 
-                if config:
+                # config is either empty, an error code ("4") or a viable configuration
+                if config and config != "4":
                     valid_configurations.append(config)
                 # The block below is only relevant if the cascade of the divider 6 into the divider 4 is activated
-                elif self.primitive.specification == "mmcm" and f_out_4_cascade and 4 in output_frequencies:
+                elif self.primitive.specification == "mmcm" and f_out_4_cascade and 4 in output_frequencies \
+                        and config == "4":
                     # Use a copy of the dictionary which uses a different value for the output frequency 4
                     # though the actual output frequency 4 will not change because of the cascade
                     temp_output_frequencies = output_frequencies.copy()
@@ -68,25 +73,39 @@ class ClockingConfigurator:
                     if 6 in output_frequencies and output_frequencies[6] > output_frequencies[4]:
                         o6_value = temp_conf.approximate_o_divider(6, m_temp, d_temp, f_in_1, output_frequencies[6],
                                                                    deltas[6], self.f_out_min, self.f_out_max)
-                        temp_output_frequencies[4] = temp_output_frequencies[4] * o6_value
+
+                        if o6_value is not None:
+                            temp_output_frequencies[4] = temp_output_frequencies[4] * o6_value
+
+                            config = self.get_new_configuration_with_o_dividers(f_in_1, m_temp, d_temp,
+                                                                                temp_output_frequencies, deltas)
+                            # Set cascade manually
+                            if config and config != "4":
+                                config.clkout4_cascade.set_value(True)
 
                     elif 6 not in output_frequencies:
-                        # Choose the greatest divider possible for the output frequency 6 if it is not used
-                        # The greatest divider is chosen here since the cascade is used and only if
-                        # the divider 4 was not big enough
-                        o6_value = temp_conf.approximate_o_divider(6, m_temp, d_temp, f_in_1, self.f_out_min, 1.0,
-                                                                   self.f_out_min, self.f_out_max)
-                        temp_output_frequencies[6] = self.f_out_min
-                        # This looks dangerous
-                        temp_output_frequencies[4] = temp_output_frequencies[4] * o6_value
+                        # Another support function will compute o4 and o6 in this specific case and set them manually
+                        tupl = self.precompute_o6_divider(f_in_1, m_temp, d_temp, output_frequencies[4],
+                                                                        deltas[4])
+                        if tupl is not None:
+                            o4_value, o6_value = tupl
 
-                    config = self.get_new_configuration_with_o_dividers(f_in_1, m_temp, d_temp, temp_output_frequencies,
-                                                                        deltas)
-                    if config:
-                        # Activate the divider
-                        config.clkout4_cascade.set_value(True)
-                        config.clkout4_cascade.on = True
+                            # Remove output 4 from dictionary since it will be set manually
+                            temp_output_frequencies.pop(6, None)
+                            temp_output_frequencies.pop(4, None)
+                            # Try to create new config
+                            config = self.get_new_configuration_with_o_dividers(f_in_1, m_temp, d_temp,
+                                                                                temp_output_frequencies, deltas)
+                            if config and config != "4":
+                                # Set o4 and o6 manually
+                                config.clkout4_divide.value = o4_value
+                                config.clkout4_divide.on = True
+                                config.clkout6_divide.value = o6_value
+                                config.clkout6_divide.on = True
+                                # Set cascade manually
+                                config.clkout4_cascade.set_value(True)
 
+                    if config and config != "4":
                         valid_configurations.append(config)
 
                 checked_m_d_combinations.append(m_temp / d_temp)
@@ -115,7 +134,39 @@ class ClockingConfigurator:
                                                          self.f_out_max)
         if found:
             return config
+        elif 4 in output_frequencies and \
+                relative_error(output_frequencies[4], config.get_output_frequency(4)) > deltas[4]:
+            # Error code for higher level function
+            return "4"
         return False
+
+    def precompute_o6_divider(self, f_in_1: float, m, d, target_f_out_4, delta_4):
+        """
+        Compute a output divider value for o6 with no respect to the output frequency 6 itself
+        The goal is to find a fitting o6 for a target output frequency 4
+        """
+        # Make sure the target frequency is within the technical limitations
+
+        f_vco = (f_in_1 * m) / d
+        # o_64 represents the product of o4 and o6
+        lower_o_64 = f_vco / (target_f_out_4 + target_f_out_4 * delta_4)
+        upper_o_64 = f_vco / (target_f_out_4 - target_f_out_4 * delta_4)
+
+        # Many combinations of o4 and o6 will lead to the same o64 which is why we use a nested for loop
+        # The goal is to find o64 with o4 as big as possible (this will enable finer duty cycle and ps values later)
+        for o4 in range(128, 1, -1):
+            if f_vco / o4 < self.f_out_min:
+                continue
+            for o6 in range(1, 128):
+                # o6 values that are too small have to be skipped
+                if f_vco / o6 > self.f_out_max:
+                    continue
+                # Break the inner o6 loop if o6 gets too big
+                if f_vco / o6 < self.f_out_min:
+                    break
+                if lower_o_64 <= o4 * o6 <= upper_o_64 and self.f_out_min <= f_vco / (o6 * o4) <= self.f_out_max:
+                    # found the biggest fitting o6 with a fitting o4 for o64
+                    return o4, o6
 
     def configure_phase_shift_parameters(self, phase_shift_0: float = None, phase_shift_1: float = None,
                                          phase_shift_2: float = None, phase_shift_3: float = None,
@@ -145,6 +196,9 @@ class ClockingConfigurator:
             # Iterate trough all the possible values of the clkfbout_phase attribute, starting with 0 (default value)
             # It stops once it finds a value that satisfies all deltas
             for cp_value in config.clkfbout_phase.get_range_as_generator():
+                # Set the feedback divider
+                config.clkfbout_phase.on = True
+                config.clkfbout_phase.value = cp_value
 
                 viable_candidate = True
                 for index in phase_shifts:
@@ -159,11 +213,11 @@ class ClockingConfigurator:
                     # Set next best phase shift
                     # The cp_value is subtracted from the target value since all clocks will the shifted backwards by
                     # the value of clkfbout_phase (which is cp_value)
-                    current_pshift.set_and_correct_value(phase_shifts[index] - cp_value)
+                    current_pshift.set_and_correct_value(phase_shifts[index] + cp_value)
                     current_pshift.on = True
 
                     # Reject this combination of clkfbout_phase and output phase shifts if it goes beyond delta
-                    if relative_error(phase_shifts[index], current_pshift.value) > deltas[index]:
+                    if relative_error(phase_shifts[index], current_pshift.value - cp_value) > deltas[index]:
                         viable_candidate = False
                         break
 
@@ -171,6 +225,8 @@ class ClockingConfigurator:
                 if viable_candidate:
                     updated_candidates.append(config)
                     break
+        self.configuration_candidates = updated_candidates
+        return updated_candidates
 
     def configure_duty_cycle_parameters(self, duty_cycle_0: float = None, duty_cycle_1: float = None,
                                         duty_cycle_2: float = None, duty_cycle_3: float = None,
@@ -203,7 +259,10 @@ class ClockingConfigurator:
                 # It may be possible for this formula to not work in certain unknown edge cases
                 divider_value = config.get_output_divider(index).value
                 current_dc.increment = 1 / (divider_value * 2)
-                current_dc.start = 1 / divider_value
+                if divider_value >= 64:
+                    current_dc.start = 0.5 - (128 - divider_value) * (0.5 / divider_value)
+                else:
+                    current_dc.start = 1 / divider_value
 
                 # Set the next best duty cycle value
                 current_dc.set_and_correct_value(duty_cycles[index])
@@ -212,9 +271,10 @@ class ClockingConfigurator:
                 if relative_error(duty_cycles[index], current_dc.value) > deltas[index]:
                     viable_candidate = False
                     break
-
             if viable_candidate:
                 updated_candidates.append(config)
+        self.configuration_candidates = updated_candidates
+        return updated_candidates
 
     def configure_other_parameters(self, bandwidth: str = None, ref_jitter1: float = None, startup_wait: bool = None):
         if bandwidth is not None:

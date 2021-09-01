@@ -92,6 +92,9 @@ class ClockPrimitive(ABC):
             raise ValueError(f"Index out of range, primitive does not have output phase shift with index {index}")
         return getattr(self, f"clkout{index}_phase")
 
+    def get_true_phase_shift_value(self, index: int) -> float:
+        return self.get_phase_shift(index).value - self.clkfbout_phase.value
+
     def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
         self.clkin1_period.set_value(frequency_to_period_ns_precision(f_in_1))
         self.clkin1_period.on = True
@@ -158,7 +161,7 @@ class ClockPrimitive(ABC):
         # given by delta values
         actual_f_outs = self.get_output_frequency_dict()
         for index, f_out in desired_output_frequencies.items():
-            if relative_error(actual_f_outs[index], f_out) > deltas[index]:
+            if relative_error(f_out, actual_f_outs[index]) > deltas[index]:
                 # Return False and therefore make higher level functions reject this configuration
                 return False
 
@@ -380,7 +383,7 @@ class Mmcme2Base(ClockPrimitive):
         actual_f_out = self.get_output_frequency(index)
         if relative_error(actual_f_out, target_f_out) > delta:
             # Return False and therefore make higher level functions reject this configuration
-            return False
+            return None
 
         return target_divider.value
 
