@@ -3,11 +3,11 @@ from pathlib import Path
 import os
 from fpgaglobals import FPGA_MODELS
 from fpgaprimitives import Mmcme2Base, Plle2Base
-from fpgaconfigurations import ClockingConfiguration
+from fpgaconfigurations import ClockingConfigurator
 import subprocess
 
 # The tests of this module can only work with the vivado binary
-vivado_binary_path = "/home/freaki/Xilinx/Vivado/2020.2/bin/vivado"
+vivado_binary_path = "~/Xilinx/Vivado/2020.2/bin/vivado"
 vivado_binary_available = Path(vivado_binary_path).is_file() and os.access(vivado_binary_path, os.X_OK)
 
 
@@ -75,8 +75,8 @@ def get_value_dict_from_clock_report():
 class VivadoTest(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.artix_mmcm_base_configuration = ClockingConfiguration(FPGA_MODELS[("artix-7", "-1", "1.0V")], Mmcme2Base.get_new_instance())
-        self.artix_pll_base_configuration = ClockingConfiguration(FPGA_MODELS[("artix-7", "-1", "1.0V")], Plle2Base.get_new_instance())
+        self.artix_mmcm_base_configuration = ClockingConfigurator(FPGA_MODELS[("artix-7", "-1", "1.0V")], Mmcme2Base.get_new_instance())
+        self.artix_pll_base_configuration = ClockingConfigurator(FPGA_MODELS[("artix-7", "-1", "1.0V")], Plle2Base.get_new_instance())
 
     def test_artix_mmcm(self):
         desired_values_dict = {"f_in_1": 10, "f_out_0": 600, "f_out_1": 300, "delta_0": 0, "delta_1": 0}

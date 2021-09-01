@@ -1,5 +1,5 @@
 import unittest
-from fpgaconfigurations import ClockingConfiguration
+from fpgaconfigurations import ClockingConfigurator
 import fpgaprimitives
 from fpgaglobals import FPGA_MODELS
 
@@ -10,7 +10,7 @@ class OtherParameterTests(unittest.TestCase):
     ref_jitters = [0.0, 0.5, 0.999]
 
     def setUp(self) -> None:
-        self.test_candidates = [ClockingConfiguration(FPGA_MODELS[primitive], model.get_new_instance())
+        self.test_candidates = [ClockingConfigurator(FPGA_MODELS[primitive], model.get_new_instance())
                                 for primitive in self.model_keys
                                 for model in [fpgaprimitives.Mmcme2Base, fpgaprimitives.Plle2Base]
                                 ]
