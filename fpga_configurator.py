@@ -1,5 +1,5 @@
-from fpgaprimitives import ClockPrimitive
-from fpgamodel import FPGAModel
+from fpga_primitives import ClockPrimitive
+from fpga_model import FPGAModel
 from math import floor, ceil
 from utility import relative_error
 
@@ -193,38 +193,32 @@ class ClockingConfigurator:
             # The clkfbout_phase is used in order to make the the most out of the clock primitives attributes
             config.clkfbout_phase.increment = 45 / config.d.value
 
-            # Iterate trough all the possible values of the clkfbout_phase attribute, starting with 0 (default value)
-            # It stops once it finds a value that satisfies all deltas
-            for cp_value in config.clkfbout_phase.get_range_as_generator():
-                # Set the feedback divider
-                config.clkfbout_phase.on = True
-                config.clkfbout_phase.value = cp_value
+            viable_candidate = True
+            for index in phase_shifts:
+                # Quicksave reference to current phase shift in order to not call a get function over and over again
+                current_pshift = config.get_phase_shift(index)
 
-                viable_candidate = True
-                for index in phase_shifts:
-                    # Quicksave reference to current phase shift in order to not call a get function over and over again
-                    current_pshift = config.get_phase_shift(index)
+                # Initiate increment and end value (in degrees)
+                divider_value = config.get_output_divider(index).value
+                current_pshift.increment = 45 / divider_value
 
-                    # Initiate increment and end value (in degrees)
-                    divider_value = config.get_output_divider(index).value
-                    current_pshift.increment = 45 / divider_value
-                    current_pshift.end = (63 / divider_value) * 360 + 7 * (45 / divider_value)
+                current_pshift.end = (63 / divider_value) * 360 + 7 * (45 / divider_value)
 
-                    # Set next best phase shift
-                    # The cp_value is subtracted from the target value since all clocks will the shifted backwards by
-                    # the value of clkfbout_phase (which is cp_value)
-                    current_pshift.set_and_correct_value(phase_shifts[index] + cp_value)
-                    current_pshift.on = True
+                # Set next best phase shift
+                # The cp_value is subtracted from the target value since all clocks will the shifted backwards by
+                # the value of clkfbout_phase (which is cp_value)
+                current_pshift.set_and_correct_value(phase_shifts[index])
+                current_pshift.on = True
 
-                    # Reject this combination of clkfbout_phase and output phase shifts if it goes beyond delta
-                    if relative_error(phase_shifts[index], current_pshift.value - cp_value) > deltas[index]:
-                        viable_candidate = False
-                        break
-
-                # Stop the cp_value loop if a viable candidate has been found
-                if viable_candidate:
-                    updated_candidates.append(config)
+                # Reject this combination of clkfbout_phase and output phase shifts if it goes beyond delta
+                if relative_error(phase_shifts[index], current_pshift.value) > deltas[index]:
+                    viable_candidate = False
                     break
+
+            if viable_candidate:
+                updated_candidates.append(config)
+                break
+
         self.configuration_candidates = updated_candidates
         return updated_candidates
 

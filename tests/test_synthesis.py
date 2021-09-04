@@ -1,13 +1,14 @@
 import unittest
 from pathlib import Path
 import os
-from fpgaglobals import FPGA_MODELS
-from fpgaprimitives import Mmcme2Base, Plle2Base
-from fpgaconfigurations import ClockingConfigurator
+from fpga_globals import FPGA_MODELS
+from fpga_primitives import Mmcme2Base, Plle2Base
+from fpga_configurator import ClockingConfigurator
 import subprocess
 
 # The tests of this module can only work with the vivado binary
-vivado_binary_path = "~/Xilinx/Vivado/2020.2/bin/vivado"
+# Insert your own path here if this generic one does not work
+vivado_binary_path = str(Path.home()) + "/Xilinx/Vivado/2020.2/bin/vivado"
 vivado_binary_available = Path(vivado_binary_path).is_file() and os.access(vivado_binary_path, os.X_OK)
 
 
@@ -71,7 +72,10 @@ def get_value_dict_from_clock_report():
     }
 
 
-@unittest.skipIf(not vivado_binary_available, "Gunther")
+@unittest.skipIf(not vivado_binary_available,
+                 "Synthesis test was skipped since the necessary Vivado binary was not found." +
+                 "Synthesis is possible only via Xilinx Vivado ML."
+                 "\n Please insert your own Vivado binary path in \"test_synthesis.py\" in order to use this TestCase.")
 class VivadoTest(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -132,4 +136,38 @@ class VivadoTest(unittest.TestCase):
             temp_delta = 1 / desired_values_dict[f"delta_{key}"] if desired_values_dict[f"delta_{key}"] != 0 else 0
             self.assertAlmostEqual(round(1 / desired_values_dict[f"f_out_{key}"], 6),
                                    report_dict[f"clkout{key}_OBUF"]["period"] / 1000,
+                                   delta=temp_delta)
+
+    def test_clkfbout_functionality(self):
+        desired_values_dict = {"f_in_1": 100, "f_out_0": 755, "f_out_1": 151, "delta_0": 0.001, "delta_1": 0.001}
+        desired_values_dict2 = {"phase_shift_0": 72, "phase_shift_1": -9, "delta_0": 0.001, "delta_1": 0.001}
+        desired_out_count = 2
+        self.artix_mmcm_base_configuration.configure_frequency_parameters(**desired_values_dict)
+        print(len(self.artix_mmcm_base_configuration.configuration_candidates))
+        self.artix_mmcm_base_configuration.configure_phase_shift_parameters(**desired_values_dict2)
+
+        print(self.artix_mmcm_base_configuration.get_properties_dict())
+        print(self.artix_mmcm_base_configuration.generate_template())
+        # Test calculated values' integrity with clk wiz from vivado
+        write_tcl_script("xc7a35ticsg324-1L", integrity_test=True, primitive="MMCM",
+                         properties=self.artix_mmcm_base_configuration.get_properties_dict())
+        log = run_generated_tcl_script()
+
+        # Test if clk wiz threw no errors
+        self.assertNotIn("ERROR:", log)
+
+        write_test_verilog_template(self.artix_mmcm_base_configuration.generate_template())
+        write_tcl_script("xc7a35ticsg324-1L", simulated_input_frequency=100, clock_report=True)
+        log = run_generated_tcl_script()
+
+        # Test if synthesis threw no error
+        self.assertNotIn("ERROR:", log)
+
+        # Test if values of created clocks are according to desired values
+        report_dict = get_value_dict_from_clock_report()
+        print(get_value_dict_from_clock_report())
+        for key in range(desired_out_count):
+            temp_delta = 1 / desired_values_dict2[f"delta_{key}"] if desired_values_dict[f"delta_{key}"] != 0 else 0
+            self.assertAlmostEqual(round(desired_values_dict[f"phase_shift_{key}"], 3),
+                                   report_dict[f"clkout{key}_OBUF"]["phase_shift"] / 1000,
                                    delta=temp_delta)

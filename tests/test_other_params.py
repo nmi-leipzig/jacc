@@ -1,7 +1,7 @@
 import unittest
-from fpgaconfigurations import ClockingConfigurator
-import fpgaprimitives
-from fpgaglobals import FPGA_MODELS
+from fpga_configurator import ClockingConfigurator
+import fpga_primitives
+from fpga_globals import FPGA_MODELS
 
 
 class OtherParameterTests(unittest.TestCase):
@@ -12,7 +12,7 @@ class OtherParameterTests(unittest.TestCase):
     def setUp(self) -> None:
         self.test_candidates = [ClockingConfigurator(FPGA_MODELS[primitive], model.get_new_instance())
                                 for primitive in self.model_keys
-                                for model in [fpgaprimitives.Mmcme2Base, fpgaprimitives.Plle2Base]
+                                for model in [fpga_primitives.Mmcme2Base, fpga_primitives.Plle2Base]
                                 ]
         for config in self.test_candidates:
             config.set_blank_selected_candidate()

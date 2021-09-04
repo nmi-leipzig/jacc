@@ -1,7 +1,7 @@
 import unittest
-from fpgaprimitives import *
-from fpgaglobals import FPGA_MODELS
-from fpgaconfigurations import *
+from fpga_primitives import *
+from fpga_globals import FPGA_MODELS
+from fpga_configurator import *
 
 
 class FrequencyConfigurationTest(unittest.TestCase):
@@ -270,12 +270,12 @@ class FrequencyConfigurationTest(unittest.TestCase):
         # Tests are written through these lists
         # Values of the same test should have the same index in all lists
         # New values can be added here
-        m_values = [37.750, 37.750, 46.25, 46.25, 46.25]
-        d_values = [5, 5, 3, 3, 3]
-        o0_values = [1, 1, 3.75, 3.75, 3.75]
-        o1_values = [5, 5, 7, 7, 7]
-        o0_phase_shift = [36, -18, -360, 360, 360]
-        o1_phase_shift = [9, -9, 360, -360, 180]
+        m_values = [46.25, 46.25, 46.25]
+        d_values = [3, 3, 3]
+        o0_values = [3.75, 3.75, 3.75]
+        o1_values = [7, 7, 7]
+        o0_phase_shift = [-360, 360, 360]
+        o1_phase_shift = [360, -360, 180]
         # All those really tiny delta values are because of tiny floating point differences
         o0_deltas = [0.001, 0.001, 0.001, 0.001, 0.001]
         o1_deltas = [0.001, 0.001, 0.001, 0.001, 0.001]

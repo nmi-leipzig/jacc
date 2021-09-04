@@ -1,6 +1,6 @@
-from fpgaglobals import get_clock_attributes
+from fpga_globals import get_clock_attributes
 from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision
-from clkattr import *
+from clk_attr import *
 
 
 @dataclass
@@ -91,9 +91,6 @@ class ClockPrimitive(ABC):
         if not 0 <= index < self.output_clocks:
             raise ValueError(f"Index out of range, primitive does not have output phase shift with index {index}")
         return getattr(self, f"clkout{index}_phase")
-
-    def get_true_phase_shift_value(self, index: int) -> float:
-        return self.get_phase_shift(index).value - self.clkfbout_phase.value
 
     def set_in_period_based_on_frequency(self, f_in_1: float, f_in_2: float = None):
         self.clkin1_period.set_value(frequency_to_period_ns_precision(f_in_1))

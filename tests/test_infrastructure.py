@@ -1,7 +1,7 @@
 import unittest
-from fpgaprimitives import *
-from fpgaglobals import get_clock_attributes
-from fpgaglobals import FPGA_MODELS
+from fpga_primitives import *
+from fpga_globals import get_clock_attributes
+from fpga_globals import FPGA_MODELS
 
 
 # Test Cases for the ClockAttribute classes (and others that inherit from ClockAttribute)
