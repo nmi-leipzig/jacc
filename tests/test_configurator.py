@@ -277,8 +277,8 @@ class FrequencyConfigurationTest(unittest.TestCase):
         o0_phase_shift = [-360, 360, 360]
         o1_phase_shift = [360, -360, 180]
         # All those really tiny delta values are because of tiny floating point differences
-        o0_deltas = [0.001, 0.001, 0.001, 0.001, 0.001]
-        o1_deltas = [0.001, 0.001, 0.001, 0.001, 0.001]
+        o0_deltas = [0.001, 0.001, 0.001]
+        o1_deltas = [0.001, 0.001, 0.001]
 
         for i in range(len(m_values)):
             configurator = self.setup_configurator_with_specific_config(m_values[i], d_values[i], o0_values[i],
@@ -288,7 +288,27 @@ class FrequencyConfigurationTest(unittest.TestCase):
                                                           delta_0=o0_deltas[i], delta_1=o1_deltas[i])
 
             confi = configurator.configuration_candidates[0]
-            self.assertAlmostEqual(confi.get_true_phase_shift_value(0), o0_phase_shift[i],
+            self.assertAlmostEqual(confi.get_phase_shift(0).value, o0_phase_shift[i],
                                    delta=abs(o0_deltas[i] * o0_phase_shift[i]))
-            self.assertAlmostEqual(confi.get_true_phase_shift_value(1), o1_phase_shift[i],
+            self.assertAlmostEqual(confi.get_phase_shift(1).value, o1_phase_shift[i],
                                    delta=abs(o1_deltas[i] * o1_phase_shift[i]))
+
+    def test_candidate_selection(self):
+        """
+        Tests the "select_candidate" method
+        :return: None
+        """
+        self.after_frequency_setup()
+
+        # Putting mmcm and pll into a list in order to reduce duplicate code a little
+        for configurator in [self.configurator_mmcm, self.configurator_pll]:
+            candidate = configurator.select_candidate()
+            for config in configurator.configuration_candidates:
+                # Check that relative error between m_ideal and m of the candidate is leq than relative error between
+                # m_ideal and m of the config
+                m_ideal = configurator.get_m_ideal()
+                self.assertLessEqual(relative_error(m_ideal, candidate.m.value), relative_error(m_ideal, config.m.value))
+
+                if candidate.m.value == config.m.value:
+                    # Also check that D of the candidate is smaller compared to "config" in case of equal M values
+                    self.assertLessEqual(candidate.d.value, config.d.value)

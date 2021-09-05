@@ -1,6 +1,7 @@
 from fpga_primitives import ClockPrimitive
 from fpga_model import FPGAModel
 from math import floor, ceil
+from operator import attrgetter
 from utility import relative_error
 
 
@@ -14,6 +15,8 @@ class ClockingConfigurator:
         self.f_out_max = fpga.get_f_out_max(self.primitive.specification)
         self.configuration_candidates = []
         self.selected_candidate = None
+        self.f_in_1 = None
+        self.d_min = None
 
     def configure_frequency_parameters(self, f_in_1: float, f_out_0: float,
                                        f_out_1: float = None, f_out_2: float = None, f_out_3: float = None,
@@ -22,6 +25,9 @@ class ClockingConfigurator:
                                        delta_2: float = 0.5, delta_3: float = 0.5,
                                        delta_4: float = 0.5, delta_5: float = 0.5,
                                        delta_6: float = 0.5, f_out_4_cascade=False) -> list:
+
+        # Set f_in_1 for later usage
+        self.f_in_1 = f_in_1
 
         # Filter desired output values that have not been set
         output_frequencies = {index: value
@@ -40,7 +46,9 @@ class ClockingConfigurator:
             raise ValueError(f"Error, too many ports. {self.primitive.specification} does not support more than "
                              "6 output ports.")
 
-        d_min, d_max, m_min, m_max = self.get_d_m_min_max(f_in_1)
+        # Get some boundary values based on the input frequency, pfd and vco
+        # Also d_min is saved as in an attribute for later usage in the "select_candidate" method
+        self.d_min, d_max, m_min, m_max = self.get_d_m_min_max(f_in_1)
 
         # This list contains fractions that have already been evaluated as not fitting
         # So m = 2, d = 5 wont be evaluated if 0.4 is already in this list
@@ -48,7 +56,7 @@ class ClockingConfigurator:
         valid_configurations = []
 
         for m_temp in self.primitive.get_m_generator(start=m_min, end=m_max):
-            for d_temp in self.primitive.get_d_generator(start=d_min, end=d_max):
+            for d_temp in self.primitive.get_d_generator(start=self.d_min, end=d_max):
                 # The generator does limit m and d already
                 # But there are still m, d combinations that are filtered here
                 if not (self.fpga.get_vco_min(self.primitive.specification) <= (f_in_1 * m_temp) / d_temp
@@ -278,12 +286,49 @@ class ClockingConfigurator:
         if startup_wait is not None:
             self.selected_candidate.startup_wait.set_value(startup_wait)
 
+    def select_candidate(self):
+        """
+        Sorts configurations by fitness according to Xilinx' criteria then returns the most fitting configuration.
+        Then Sets the most fitting candidate and also returns them.
+        :return: The most fitting configuration candidate of self.configuration_candidates
+        """
+        # "Skip" if there is only 1 or 0 candidates
+        if len(self.configuration_candidates) == 0:
+            return
+        elif len(self.configuration_candidates) > 1:
+            # According to Xilinx:
+            # D has to be as small as possible.
+            # M also should be as small as possible but more importantly, it has to be as close as possible to m_ideal
+
+            # m_ideal according to Xilinx:
+            m_ideal = (self.d_min * self.fpga.get_vco_max(self.primitive.specification)) / self.f_in_1
+
+            # Sorting could be done by using weights for "smallness" of M, D and relative error between M and m_ideal
+            # But instead priority is used here:
+            # 1. Closeness to m_ideal
+            # 2. D ascending
+            # 3. M ascending
+
+            # First sort the list by D and secondarily by M using the operator function "attrgetter"
+            self.configuration_candidates = sorted(self.configuration_candidates, key=attrgetter("d.value", "m.value"))
+
+            # Then sort the list again by the relative error of m_ideal and M
+            self.configuration_candidates = sorted(self.configuration_candidates,
+                                                   key=lambda config: relative_error(m_ideal, config.m.value))
+
+        self.selected_candidate = self.configuration_candidates[0]
+        return self.selected_candidate
+
     def generate_template(self):
-        return self.configuration_candidates[0].generate_template()
+        return self.selected_candidate.generate_template()
 
     def get_properties_dict(self):
-        return self.configuration_candidates[0].get_properties_dict()
+        return self.selected_candidate.get_properties_dict()
 
-    # Method was made for testing purposes only
-    def set_blank_selected_candidate(self):
-        self.selected_candidate = self.primitive.get_new_instance()
+    def get_m_ideal(self):
+        """
+        Method computes and returns m_ideal based on f_in_1 and the fpga model vco maximum frequency
+        Note: This will work after using "configure_frequency_parameters", since only then f_in_1 will be set
+        :return: The ideal value of the Clocking Tiles Multiplier M, based on the input frequency
+        """
+        return (self.d_min * self.fpga.get_vco_max(self.primitive.specification)) / self.f_in_1
