@@ -58,6 +58,7 @@ class RangeAttribute(ClockAttribute):
 
     def instantiate_template(self) -> str:
         value_str = f"{self.value:.{self.decimal_places}f}"
+
         # Sometimes the rounding will make the value go out of bounds
         # 1/0.019 = 52.631578947368425 => 52.632, but 52.631 is the max value accepted by the vivado synthesis
         if float(value_str) > self.end:

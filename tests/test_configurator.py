@@ -307,8 +307,152 @@ class FrequencyConfigurationTest(unittest.TestCase):
                 # Check that relative error between m_ideal and m of the candidate is leq than relative error between
                 # m_ideal and m of the config
                 m_ideal = configurator.get_m_ideal()
-                self.assertLessEqual(relative_error(m_ideal, candidate.m.value), relative_error(m_ideal, config.m.value))
+                self.assertLessEqual(relative_error(m_ideal, candidate.m.value),
+                                     relative_error(m_ideal, config.m.value))
 
                 if candidate.m.value == config.m.value:
                     # Also check that D of the candidate is smaller compared to "config" in case of equal M values
                     self.assertLessEqual(candidate.d.value, config.d.value)
+
+    def test_configure_primitive(self):
+        """
+        Tests the "configure_primitive" method
+        :return: None
+        """
+        self.frequency_setup()
+
+        # Define input dictionaries for MMCM test case
+        mmcm_frequency_dict = {"f_in_1": 237.5, "f_out_0": 133.7, "f_out_1": 69, "f_out_2": 500, "f_out_3": 180,
+                               "f_out_4": 80, "f_out_5": 160, "f_out_6": 370}
+        mmcm_frequency_delta_dict = {"delta_0": 0.005, "delta_1": 0.016, "delta_2": 0.02, "delta_3": 0.023,
+                                     "delta_4": 0.05, "delta_5": 0.025, "delta_6": 0.009}
+        mmcm_phase_shift_delta_dict = {"delta_1": 0, "delta_3": 0}
+        mmcm_duty_cycle_delta_dict = {"delta_0": 0.095, "delta_1": 0.005}
+
+        # Define input dictionaries for PLL test case
+        pll_frequency_dict = {"f_in_1": 237.5, "f_out_0": 133.7, "f_out_1": 69, "f_out_2": 500, "f_out_3": 180,
+                              "f_out_4": 80, "f_out_5": 160}
+        pll_frequency_delta_dict = {"delta_0": 0.003, "delta_1": 0.0005, "delta_2": 0.0009, "delta_3": 0.012,
+                                    "delta_4": 0.001, "delta_5": 0.044}
+        pll_phase_shift_delta_dict = {"delta_1": 0.0022, "delta_3": 0}
+        pll_duty_cycle_delta_dict = {"delta_0": 0.07, "delta_1": 0.005}
+
+        # Define input dictionaries that are for both tests
+        phase_shift_dict = {"phase_shift_1": 240, "phase_shift_3": -360}
+        duty_cycle_dict = {"duty_cycle_0": 0.125, "duty_cycle_1": 0.67}
+        other_args = {"bandwidth": "OPTIMIZED", "startup_wait": True}
+
+        # Put them into a "super" dict in order to be able to put both tests (and possibly future tests) into one loop
+        mmcm_dict = {"fpga": self.fpga,
+                     "primitive": self.mmcme_2_base,
+                     "frequency_args": {**mmcm_frequency_dict, **mmcm_frequency_delta_dict},
+                     "phase_shift_args": {**phase_shift_dict, **mmcm_phase_shift_delta_dict},
+                     "duty_cycle_args": {**duty_cycle_dict, **mmcm_duty_cycle_delta_dict},
+                     "other_args": other_args}
+        pll_dict = {"fpga": self.fpga,
+                    "primitive": self.plle_2_base,
+                    "frequency_args": {**pll_frequency_dict, **pll_frequency_delta_dict},
+                    "phase_shift_args": {**phase_shift_dict, **pll_phase_shift_delta_dict},
+                    "duty_cycle_args": {**duty_cycle_dict, **pll_duty_cycle_delta_dict},
+                    "other_args": other_args}
+
+        for d in [mmcm_dict, pll_dict]:
+            configurator = ClockingConfigurator(d["fpga"], d["primitive"])
+            configurator.configure_primitive(d["frequency_args"], d["phase_shift_args"], d["duty_cycle_args"],
+                                             d["other_args"])
+            config = configurator.selected_candidate
+
+            # Check frequencies:
+            for index in [int(key[-1]) for key in d["frequency_args"] if "f_out_" in key]:
+                key = f"f_out_{index}"
+                self.assertAlmostEqual(config.get_output_frequency(index),
+                                       d["frequency_args"][key],
+                                       delta=d["frequency_args"][f"delta_{index}"] * d["frequency_args"][key])
+
+            # Check phase_shifts:
+            for index in [int(key[-1]) for key in d["phase_shift_args"] if "phase_shift_" in key]:
+                key = f"phase_shift_{index}"
+                self.assertAlmostEqual(config.get_phase_shift(index).value,
+                                       d["phase_shift_args"][key],
+                                       delta=d["phase_shift_args"][f"delta_{index}"] * d["phase_shift_args"][key])
+
+            # Check duty_cycles:
+            for index in [int(key[-1]) for key in d["duty_cycle_args"] if "duty_cycle_" in key]:
+                key = f"duty_cycle_{index}"
+                self.assertAlmostEqual(config.get_duty_cycle(index).value,
+                                       d["duty_cycle_args"][key],
+                                       delta=d["duty_cycle_args"][f"delta_{index}"] * d["duty_cycle_args"][key])
+
+    def test_configure_primitive_like_vivado(self):
+        """
+        Tests the method "configure_primitive_like_vivado.
+        Test is similar to "test_configure_primitive" but deltas are now automatically generated
+        :return: None
+        """
+        self.frequency_setup()
+
+        # Define input dictionaries for MMCM test case
+        mmcm_frequency_dict = {"f_in_1": 237.5, "f_out_0": 133.7, "f_out_1": 69, "f_out_2": 500, "f_out_3": 180,
+                               "f_out_4": 80, "f_out_5": 160, "f_out_6": 370}
+        mmcm_frequency_delta_dict = {"delta_0": 0.005, "delta_1": 0.016, "delta_2": 0.02, "delta_3": 0.023,
+                                     "delta_4": 0.05, "delta_5": 0.025, "delta_6": 0.009}
+        mmcm_phase_shift_delta_dict = {"delta_1": 0, "delta_3": 0}
+        mmcm_duty_cycle_delta_dict = {"delta_0": 0.095, "delta_1": 0.005}
+
+        # Define input dictionaries for PLL test case
+        pll_frequency_dict = {"f_in_1": 237.5, "f_out_0": 133.7, "f_out_1": 69, "f_out_2": 500, "f_out_3": 180,
+                              "f_out_4": 80, "f_out_5": 160}
+        pll_frequency_delta_dict = {"delta_0": 0.003, "delta_1": 0.0005, "delta_2": 0.0009, "delta_3": 0.012,
+                                    "delta_4": 0.001, "delta_5": 0.044}
+        pll_phase_shift_delta_dict = {"delta_1": 0.0022, "delta_3": 0}
+        pll_duty_cycle_delta_dict = {"delta_0": 0.07, "delta_1": 0.005}
+
+        # Define input dictionaries that are for both tests
+        phase_shift_dict = {"phase_shift_1": 240, "phase_shift_3": -360}
+        duty_cycle_dict = {"duty_cycle_0": 0.125, "duty_cycle_1": 0.67}
+        other_args = {"bandwidth": "OPTIMIZED", "startup_wait": True}
+
+        # Put them into a "super" dict in order to be able to put both tests (and possibly future tests) into one loop
+        mmcm_dict = {"fpga": self.fpga,
+                     "primitive": self.mmcme_2_base,
+                     "frequency_args": {**mmcm_frequency_dict},
+                     "phase_shift_args": {**phase_shift_dict},
+                     "duty_cycle_args": {**duty_cycle_dict},
+                     "other_args": other_args}
+        pll_dict = {"fpga": self.fpga,
+                    "primitive": self.plle_2_base,
+                    "frequency_args": {**pll_frequency_dict},
+                    "phase_shift_args": {**phase_shift_dict},
+                    "duty_cycle_args": {**duty_cycle_dict},
+                    "other_args": other_args}
+
+        for d in [mmcm_dict, pll_dict]:
+            configurator = ClockingConfigurator(d["fpga"], d["primitive"])
+            configurator.configure_primitive(d["frequency_args"], d["phase_shift_args"], d["duty_cycle_args"],
+                                             d["other_args"])
+            config = configurator.selected_candidate
+
+            # Test deltas values are chosen in a rather arbitrary way here.
+            # This test is mostly about checking whether or not errors come up
+            # Check frequencies:
+            for index in [int(key[-1]) for key in d["frequency_args"] if "f_out_" in key]:
+                key = f"f_out_{index}"
+                self.assertAlmostEqual(config.get_output_frequency(index),
+                                       d["frequency_args"][key],
+                                       delta=0.07 * d["frequency_args"][key])
+
+            # Check phase_shifts:
+            for index in [int(key[-1]) for key in d["phase_shift_args"] if "phase_shift_" in key]:
+                key = f"phase_shift_{index}"
+                self.assertAlmostEqual(config.get_phase_shift(index).value,
+                                       d["phase_shift_args"][key],
+                                       delta=0.14 * d["phase_shift_args"][key])
+
+            # Check duty_cycles:
+            for index in [int(key[-1]) for key in d["duty_cycle_args"] if "duty_cycle_" in key]:
+                key = f"duty_cycle_{index}"
+                self.assertAlmostEqual(config.get_duty_cycle(index).value,
+                                       d["duty_cycle_args"][key],
+                                       delta=0.14 * d["duty_cycle_args"][key])
+
+

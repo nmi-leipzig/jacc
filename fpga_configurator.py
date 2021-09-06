@@ -18,13 +18,92 @@ class ClockingConfigurator:
         self.f_in_1 = None
         self.d_min = None
 
+    def configure_primitive(self, frequency_args: dict, phase_shift_args: dict, duty_cycle_args: dict,
+                            other_args: dict):
+        """
+        Wrapper method for the configuration methods.
+        They are called sequentially.
+        :param frequency_args: Arguments for "configure_frequency_parameters" as a kwargs dict
+        :param phase_shift_args: Arguments for "configure_phase_shift_parameters" as a kwargs dict
+        :param duty_cycle_args: Arguments for "configure_duty_cycle_parameters" as a kwargs dict
+        :param other_args: Arguments for "configure_other_parameters" as a kwargs dict
+        :return: The most fitting configuration candidate
+        """
+
+        # This call is not part of the loop below because the frequency_args should never be empty
+        # and this call is obligatory
+        self.configure_frequency_parameters(**frequency_args)
+
+        for dic, method in zip([phase_shift_args, duty_cycle_args], [self.configure_phase_shift_parameters,
+                                                                     self.configure_duty_cycle_parameters]):
+            # Call the method with the arguments if the argument dict is not empty
+            if dic:
+                method(**dic)
+
+        self.select_candidate()
+        # Those "other" arguments are independent of previous steps, which is why they are added only at the end.
+        self.configure_other_parameters(**other_args)
+
+        return self.selected_candidate
+
+    def configure_primitive_like_vivado(self, frequency_args: dict, phase_shift_args: dict, duty_cycle_args: dict,
+                                        other_args: dict, granularity: int = 10):
+        """
+        Similar to configure_primitive but deltas are not chosen from the argument dictionaries.
+        Instead delta values are chosen by this this method.
+        This Method tries to chose configuration values in a way that is similar to vivados clocking wizard.
+        It stops when a fitting configuration was found or when delta values overstep a certain limit.
+        Output ports of higher index are considered less important.
+        Taking many iterations makes this method potentially very slow
+        :param frequency_args: Arguments for "configure_frequency_parameters" as a kwargs dict
+        :param phase_shift_args: Arguments for "configure_phase_shift_parameters" as a kwargs dict
+        :param duty_cycle_args: Arguments for "configure_duty_cycle_parameters" as a kwargs dict
+        :param other_args: Arguments for "configure_other_parameters" as a kwargs dict
+        :param granularity: Step size for the increase of delta. Higher granularity means longer computation time
+        :return: The most fitting configuration candidate
+        """
+        # Get the list of output frequencies that are used
+        frequency_indexes = [key[-1] for key in frequency_args if "f_out_" in key]
+        # Get index of output ports that also demand a certain phase shift or duty cycle
+        phase_shift_indexes = [key[-1] for key in phase_shift_args if "phase_shift_" in key]
+        duty_cycle_indexes = [key[-1] for key in duty_cycle_args if "duty_cycle_" in key]
+        base_weight = 0.1 / granularity
+
+        # The deltas increase with each loop the following way:
+        # Iteration 1: delta_0: 0, delta_1: 0, delta_2: 0 ... delta_6: 0
+        # Iteration granularity / 2: delta_0: 0.05, delta_1: 0.1, delta_2: 0.15, ... delta_6: 0.35
+        # Last Iteration: delta_0: 0.1, delta_1: 0.2, delta_2: 0.3 ... delta_6: 0.7
+        for weight_factor in range(granularity + 1):
+            # Frequency deltas
+            deltas_args = {f"deltas_{index}": base_weight * (index + 1) * weight_factor for index in frequency_indexes}
+
+            # Deltas for phase shifts and duty cycles are more generous (this behavior is also typical for vivado)
+            # Deltas for phase shifts
+            delta_phase_shift_args = {f"delta_{index}": base_weight * (index + 1) * weight_factor * 2
+                                      for index in phase_shift_indexes}
+            # Deltas for duty cycles
+            delta_duty_cycle_args = {f"delta_{index}": base_weight * (index + 1) * weight_factor * 2 for
+                                     index in duty_cycle_indexes}
+
+            # Try to find a configuration using the generated deltas
+            config = self.configure_primitive({**frequency_args, **deltas_args},
+                                              {**phase_shift_args, **delta_phase_shift_args},
+                                              {**duty_cycle_args, **delta_duty_cycle_args},
+                                              other_args)
+            if config:
+                return config
+
+        # This line is only reached if no config was found by the end of the loop
+        # Return None because configuration was found even with rather high delta values
+        return None
+
     def configure_frequency_parameters(self, f_in_1: float, f_out_0: float,
                                        f_out_1: float = None, f_out_2: float = None, f_out_3: float = None,
                                        f_out_4: float = None, f_out_5: float = None, f_out_6: float = None,
-                                       delta_0: float = 0.5, delta_1: float = 0.5,
-                                       delta_2: float = 0.5, delta_3: float = 0.5,
-                                       delta_4: float = 0.5, delta_5: float = 0.5,
-                                       delta_6: float = 0.5, f_out_4_cascade=False) -> list:
+                                       delta_0: float = 0.15, delta_1: float = 0.15,
+                                       delta_2: float = 0.15, delta_3: float = 0.15,
+                                       delta_4: float = 0.15, delta_5: float = 0.15,
+                                       delta_6: float = 0.15, f_out_4_cascade=False) -> list:
 
         # Set f_in_1 for later usage
         self.f_in_1 = f_in_1
@@ -122,7 +201,7 @@ class ClockingConfigurator:
         return valid_configurations
 
     # Compute min and max values for m and d according to Xilinx
-    def get_d_m_min_max(self, f_in):
+    def get_d_m_min_max(self, f_in: float):
 
         # find the min and max values for the frequency divider d (DIVCLK_DIVIDE)
         d_min = ceil(f_in / self.fpga.get_pfd_max(self.primitive.specification))
@@ -179,9 +258,9 @@ class ClockingConfigurator:
     def configure_phase_shift_parameters(self, phase_shift_0: float = None, phase_shift_1: float = None,
                                          phase_shift_2: float = None, phase_shift_3: float = None,
                                          phase_shift_4: float = None, phase_shift_5: float = None,
-                                         phase_shift_6: float = None, delta_0: float = 0.5, delta_1: float = 0.5,
-                                         delta_2: float = 0.5, delta_3: float = 0.5, delta_4: float = 0.5,
-                                         delta_5: float = 0.5, delta_6: float = 0.5):
+                                         phase_shift_6: float = None, delta_0: float = 0.15, delta_1: float = 0.15,
+                                         delta_2: float = 0.15, delta_3: float = 0.15, delta_4: float = 0.15,
+                                         delta_5: float = 0.15, delta_6: float = 0.15):
 
         # Create dictionary of used phase shifts for quick access
         phase_shifts = {index: value
@@ -210,7 +289,8 @@ class ClockingConfigurator:
                 divider_value = config.get_output_divider(index).value
                 current_pshift.increment = 45 / divider_value
 
-                current_pshift.end = (63 / divider_value) * 360 + 7 * (45 / divider_value)
+                if divider_value > 64:
+                    current_pshift.end = (63 / divider_value) * 360 + 7 * (45 / divider_value)
 
                 # Set next best phase shift
                 # The cp_value is subtracted from the target value since all clocks will the shifted backwards by
@@ -225,7 +305,6 @@ class ClockingConfigurator:
 
             if viable_candidate:
                 updated_candidates.append(config)
-                break
 
         self.configuration_candidates = updated_candidates
         return updated_candidates
@@ -233,9 +312,9 @@ class ClockingConfigurator:
     def configure_duty_cycle_parameters(self, duty_cycle_0: float = None, duty_cycle_1: float = None,
                                         duty_cycle_2: float = None, duty_cycle_3: float = None,
                                         duty_cycle_4: float = None, duty_cycle_5: float = None,
-                                        duty_cycle_6: float = None, delta_0: float = 0.2, delta_1: float = 0.2,
-                                        delta_2: float = 0.2, delta_3: float = 0.2, delta_4: float = 0.2,
-                                        delta_5: float = 0.2, delta_6: float = 0.2):
+                                        duty_cycle_6: float = None, delta_0: float = 0.15, delta_1: float = 0.15,
+                                        delta_2: float = 0.15, delta_3: float = 0.15, delta_4: float = 0.15,
+                                        delta_5: float = 0.15, delta_6: float = 0.15):
         # Create a dictionary of used duty_cycles for quick access
         duty_cycles = {index: value
                        for index, value
@@ -269,12 +348,15 @@ class ClockingConfigurator:
                 # Set the next best duty cycle value
                 current_dc.set_and_correct_value(duty_cycles[index])
                 current_dc.on = True
+
                 # Reject the entire configuration if the result is not within the error margin of delta
                 if relative_error(duty_cycles[index], current_dc.value) > deltas[index]:
                     viable_candidate = False
                     break
+
             if viable_candidate:
                 updated_candidates.append(config)
+
         self.configuration_candidates = updated_candidates
         return updated_candidates
 
