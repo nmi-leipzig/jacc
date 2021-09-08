@@ -1,3 +1,7 @@
 .idea/
+.Xil/
+.gen/
+.srcs/
 otto.py
 __pycache__/
+tests/tcl/

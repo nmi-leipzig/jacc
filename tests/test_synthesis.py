@@ -12,33 +12,33 @@ vivado_binary_path = str(Path.home()) + "/Xilinx/Vivado/2020.2/bin/vivado"
 vivado_binary_available = Path(vivado_binary_path).is_file() and os.access(vivado_binary_path, os.X_OK)
 
 
-def write_tcl_script(fpga_model_full_name: str, simulated_input_frequency: float = None, clock_report: bool = False,
-                     integrity_test: bool = False, primitive: str = "PLL", properties: dict = dict()):
+def write_tcl_script_for_clock_report(fpga_model_full_name: str, simulated_input_frequency: float = None):
     with open("tests/tcl/generated_test_script.tcl", "w") as file:
-        if clock_report:
-            file.write("set outputDir ./tests/tcl/output_dir\n"
-                       f"set_part {fpga_model_full_name}\n"
-                       "read_verilog ./tests/tcl/generated_test_template.v\n"
-                       "synth_design -top clk\n"
-                       f"create_clock -name simulated_in_clk -period {round((1 / simulated_input_frequency) * 1000, 3)}"
-                       " [get_ports clkin1]\n"
-                       "opt_design\n"
-                       "power_opt_design\n"
-                       "place_design\n"
-                       "phys_opt_design\n"
-                       "route_design\n"
-                       "report_clocks -file $outputDir/generated_test_clock_report.rpt\n"
-                       "#write_bitstream $outputDir/design.bit\n")
+        file.write("set outputDir ./tests/tcl/output_dir\n"
+                   f"set_part {fpga_model_full_name}\n"
+                   "read_verilog ./tests/tcl/generated_test_template.v\n"
+                   "synth_design -top clk\n"
+                   f"create_clock -name simulated_in_clk -period {round((1 / simulated_input_frequency) * 1000, 3)}"
+                   " [get_ports clkin1]\n"
+                   "opt_design\n"
+                   "power_opt_design\n"
+                   "place_design\n"
+                   "phys_opt_design\n"
+                   "route_design\n"
+                   "report_clocks -file $outputDir/generated_test_clock_report.rpt\n"
+                   "#write_bitstream $outputDir/design.bit\n")
 
-        if integrity_test:
-            file.write("set outputDir ./tests/tcl/output_dir\n"
-                       "create_project -in_memory\n"
-                       f"set_part {fpga_model_full_name}\n"
-                       "create_ip -name clk_wiz -version 6.0 -vendor xilinx.com -module_name clk_wiz_instance\n"
-                       "report_property [get_ips clk_wiz_instance]\n"
-                       f"set_property CONFIG.PRIMITIVE {primitive} [get_ips clk_wiz_instance]\n")
-            for key, value in properties.items():
-                file.write(f"set_property CONFIG.{primitive}_{key} {value} [get_ips clk_wiz_instance]\n")
+
+def write_tcl_script_for_integrity_test(fpga_model_full_name: str, primitive: str,properties: dict = dict()):
+    with open("tests/tcl/generated_test_script.tcl", "w") as file:
+        file.write("set outputDir ./tests/tcl/output_dir\n"
+                   "create_project -in_memory\n"
+                   f"set_part {fpga_model_full_name}\n"
+                   "create_ip -name clk_wiz -version 6.0 -vendor xilinx.com -module_name clk_wiz_instance\n"
+                   "report_property [get_ips clk_wiz_instance]\n"
+                   f"set_property CONFIG.PRIMITIVE {primitive} [get_ips clk_wiz_instance]\n")
+        for key, value in properties.items():
+            file.write(f"set_property CONFIG.{primitive}_{key} {value} [get_ips clk_wiz_instance]\n")
 
 
 def write_test_verilog_template(template: str):
@@ -57,7 +57,6 @@ def run_generated_tcl_script():
 
 
 def get_value_dict_from_clock_report():
-    s = ""
     with open("tests/tcl/output_dir/generated_test_clock_report.rpt") as file:
         s = "".join([line for line in file.readlines()])
 
@@ -79,8 +78,10 @@ def get_value_dict_from_clock_report():
 class VivadoTest(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.artix_mmcm_base_configuration = ClockingConfigurator(FPGA_MODELS[("artix-7", "-1", "1.0V")], Mmcme2Base.get_new_instance())
-        self.artix_pll_base_configuration = ClockingConfigurator(FPGA_MODELS[("artix-7", "-1", "1.0V")], Plle2Base.get_new_instance())
+        self.artix_mmcm_base_configuration = ClockingConfigurator(FPGA_MODELS[("artix-7", "-1", "1.0V")],
+                                                                  Mmcme2Base.get_new_instance())
+        self.artix_pll_base_configuration = ClockingConfigurator(FPGA_MODELS[("artix-7", "-1", "1.0V")],
+                                                                 Plle2Base.get_new_instance())
 
     def test_artix_mmcm(self):
         desired_values_dict = {"f_in_1": 10, "f_out_0": 600, "f_out_1": 300, "delta_0": 0, "delta_1": 0}
