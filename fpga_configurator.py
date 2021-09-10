@@ -18,8 +18,8 @@ class ClockingConfigurator:
         self.f_in_1 = None
         self.d_min = None
 
-    def configure_primitive(self, frequency_args: dict, phase_shift_args: dict, duty_cycle_args: dict,
-                            other_args: dict):
+    def configure_primitive(self, frequency_args: dict, phase_shift_args: dict, other_args: dict,
+                            duty_cycle_args: dict = None):
         """
         Wrapper method for the configuration methods.
         They are called sequentially.
@@ -30,24 +30,29 @@ class ClockingConfigurator:
         :return: The most fitting configuration candidate
         """
 
+
         # This call is not part of the loop below because the frequency_args should never be empty
         # and this call is obligatory
         self.configure_frequency_parameters(**frequency_args)
 
-        for dic, method in zip([phase_shift_args, duty_cycle_args], [self.configure_phase_shift_parameters,
-                                                                     self.configure_duty_cycle_parameters]):
-            # Call the method with the arguments if the argument dict is not empty
-            if dic:
-                method(**dic)
+        if phase_shift_args:
+            self.configure_phase_shift_parameters(**phase_shift_args)
 
-        self.select_candidate()
-        # Those "other" arguments are independent of previous steps, which is why they are added only at the end.
-        self.configure_other_parameters(**other_args)
+        # Dropped because duty cycle function does not work
+        # Can be used again if a fully functional duty cycle algorithm is found
+        '''
+        if duty_cycle_args:
+            self.configure_duty_cycles_parameters(**duty_cycle_args)
+        '''
+
+        if self.select_candidate():
+            # Those "other" arguments are independent of previous steps, which is why they are added only at the end.
+            self.configure_other_parameters(**other_args)
 
         return self.selected_candidate
 
-    def configure_primitive_like_vivado(self, frequency_args: dict, phase_shift_args: dict, duty_cycle_args: dict,
-                                        other_args: dict, granularity: int = 10):
+    def configure_primitive_like_vivado(self, frequency_args: dict, phase_shift_args: dict, other_args: dict,
+                                        duty_cycle_args: dict = None, granularity: int = 10):
         """
         Similar to configure_primitive but deltas are not chosen from the argument dictionaries.
         Instead delta values are chosen by this this method.
@@ -63,10 +68,10 @@ class ClockingConfigurator:
         :return: The most fitting configuration candidate
         """
         # Get the list of output frequencies that are used
-        frequency_indexes = [key[-1] for key in frequency_args if "f_out_" in key]
+        frequency_indexes = [int(key[-1]) for key in frequency_args if "f_out_" in key and "cascade" not in key]
         # Get index of output ports that also demand a certain phase shift or duty cycle
-        phase_shift_indexes = [key[-1] for key in phase_shift_args if "phase_shift_" in key]
-        duty_cycle_indexes = [key[-1] for key in duty_cycle_args if "duty_cycle_" in key]
+        phase_shift_indexes = [int(key[-1]) for key in phase_shift_args if "phase_shift_" in key]
+        # duty_cycle_indexes = [key[-1] for key in duty_cycle_args if "duty_cycle_" in key]
         base_weight = 0.1 / granularity
 
         # The deltas increase with each loop the following way:
@@ -75,20 +80,24 @@ class ClockingConfigurator:
         # Last Iteration: delta_0: 0.1, delta_1: 0.2, delta_2: 0.3 ... delta_6: 0.7
         for weight_factor in range(granularity + 1):
             # Frequency deltas
-            deltas_args = {f"deltas_{index}": base_weight * (index + 1) * weight_factor for index in frequency_indexes}
+            deltas_args = {f"delta_{index}": base_weight * (index + 1) * weight_factor for index in frequency_indexes}
 
             # Deltas for phase shifts and duty cycles are more generous (this behavior is also typical for vivado)
             # Deltas for phase shifts
             delta_phase_shift_args = {f"delta_{index}": base_weight * (index + 1) * weight_factor * 2
                                       for index in phase_shift_indexes}
+
+            # Dropped because duty cycle function does not work
+            # Can be used again if a fully functional duty cycle algorithm is found
+            '''
             # Deltas for duty cycles
             delta_duty_cycle_args = {f"delta_{index}": base_weight * (index + 1) * weight_factor * 2 for
                                      index in duty_cycle_indexes}
-
+            '''
             # Try to find a configuration using the generated deltas
             config = self.configure_primitive({**frequency_args, **deltas_args},
                                               {**phase_shift_args, **delta_phase_shift_args},
-                                              {**duty_cycle_args, **delta_duty_cycle_args},
+                                              # {**duty_cycle_args, **delta_duty_cycle_args},
                                               other_args)
             if config:
                 return config
@@ -173,7 +182,7 @@ class ClockingConfigurator:
                     elif 6 not in output_frequencies:
                         # Another support function will compute o4 and o6 in this specific case and set them manually
                         tupl = self.precompute_o6_divider(f_in_1, m_temp, d_temp, output_frequencies[4],
-                                                                        deltas[4])
+                                                          deltas[4])
                         if tupl is not None:
                             o4_value, o6_value = tupl
 
@@ -309,6 +318,8 @@ class ClockingConfigurator:
         self.configuration_candidates = updated_candidates
         return updated_candidates
 
+    # Duty cycle function was dropped because there were cases where it did not work.
+    '''
     def configure_duty_cycle_parameters(self, duty_cycle_0: float = None, duty_cycle_1: float = None,
                                         duty_cycle_2: float = None, duty_cycle_3: float = None,
                                         duty_cycle_4: float = None, duty_cycle_5: float = None,
@@ -359,6 +370,7 @@ class ClockingConfigurator:
 
         self.configuration_candidates = updated_candidates
         return updated_candidates
+    '''
 
     def configure_other_parameters(self, bandwidth: str = None, ref_jitter1: float = None, startup_wait: bool = None):
         if bandwidth is not None:
@@ -376,7 +388,8 @@ class ClockingConfigurator:
         """
         # "Skip" if there is only 1 or 0 candidates
         if len(self.configuration_candidates) == 0:
-            return
+            self.selected_candidate = None
+            return None
         elif len(self.configuration_candidates) > 1:
             # According to Xilinx:
             # D has to be as small as possible.
@@ -404,8 +417,20 @@ class ClockingConfigurator:
     def generate_template(self):
         return self.selected_candidate.generate_template()
 
-    def get_properties_dict(self):
+    def write_verilog_file(self, path: str):
+        with open(path) as file:
+            file.write(self.generate_template())
+
+    def get_properties_dict(self) -> dict:
         return self.selected_candidate.get_properties_dict()
+
+    def get_expected_values_dict(self) -> dict:
+        """
+        Method for Testing only, returns a dictionary containing the expected ouput frequencies, phase shifts and duty
+        cycles.
+        :return: dictionary containing expected output clock values
+        """
+        return self.selected_candidate.get_expected_values_dict()
 
     def get_m_ideal(self):
         """

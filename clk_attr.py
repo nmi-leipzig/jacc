@@ -57,14 +57,16 @@ class RangeAttribute(ClockAttribute):
         self.value = value
 
     def instantiate_template(self) -> str:
-        value_str = f"{self.value:.{self.decimal_places}f}"
+        """
 
-        # Sometimes the rounding will make the value go out of bounds
-        # 1/0.019 = 52.631578947368425 => 52.632, but 52.631 is the max value accepted by the vivado synthesis
-        if float(value_str) > self.end:
-            # A truncate is used in that this here instead
-            value_str = str(int(self.value * 10 ** self.decimal_places) / (10 ** self.decimal_places))
+        :return:
+        """
+        # Value is truncated here. Truncation is preferred over rounding because it is vivados way of doing things
+        value_str = str(int(self.value * 10 ** self.decimal_places) / (10 ** self.decimal_places))
         return self.template.replace("@value@", value_str)
+
+    def get_truncated_value(self):
+        return int(self.value * 10 ** self.decimal_places) / (10 ** self.decimal_places)
 
 
 @dataclass
@@ -201,6 +203,6 @@ class BoolAttribute(ClockAttribute):
 
     def instantiate_template(self) -> str:
         if self.value:
-            return self.template.replace("@value@", "TRUE")
+            return self.template.replace("@value@", "\"TRUE\"")
         else:
-            return self.template.replace("@value@", "FALSE")
+            return self.template.replace("@value@", "\"FALSE\"")

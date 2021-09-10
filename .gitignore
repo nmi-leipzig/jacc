@@ -2,6 +2,9 @@
 .Xil/
 .gen/
 .srcs/
-otto.py
+main.py
 __pycache__/
 tests/tcl/
+gunther.v
+usage_statistics_webtalk*
+.gitignore

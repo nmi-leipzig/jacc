@@ -36,7 +36,7 @@ def get_clock_attributes(clock_primitive: str):
         # TODO LOOK UP digits
         "ref_jitter1": RangeAttribute("REF_JITTER1", 0.010, ".REF_JITTER1(@value@)", 0.0, 0.999, 3),
 
-        "startup_wait": BoolAttribute("START_WAIT", False, ".STARTUP_WAIT(@value@)"),
+        "startup_wait": BoolAttribute("STARTUP_WAIT", False, ".STARTUP_WAIT(@value@)"),
 
         "clkfbout_phase": IncrementRangeAttribute("CLKFBOUT_PHASE", 0.0, ".CLKFBOUT_PHASE(@value@)", 0.0, 360.0, 3, None),
 

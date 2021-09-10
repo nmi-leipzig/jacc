@@ -103,3 +103,19 @@ class FPGAModel:
             return self.pll_f_out_max
         else:
             return None
+
+    def get_f_in_min(self, specification: str):
+        if specification == "mmcm":
+            return self.mmcm_f_in_min
+        elif specification == "pll":
+            return self.pll_f_in_min
+        else:
+            return None
+
+    def get_f_in_max(self, specification: str):
+        if specification == "mmcm":
+            return self.mmcm_f_in_max
+        elif specification == "pll":
+            return self.pll_f_in_max
+        else:
+            return None
