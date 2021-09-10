@@ -2,7 +2,7 @@
 .Xil/
 .gen/
 .srcs/
-main.py
+otto.py
 __pycache__/
 tests/tcl/
 gunther.v
