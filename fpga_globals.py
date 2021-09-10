@@ -1,4 +1,4 @@
-from clk_attr import *
+from fpga_clk_attr import *
 import pathlib
 from fpga_model import FPGAModel
 

@@ -1,6 +1,6 @@
 from fpga_globals import get_clock_attributes
 from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision
-from clk_attr import *
+from fpga_clk_attr import *
 
 
 @dataclass

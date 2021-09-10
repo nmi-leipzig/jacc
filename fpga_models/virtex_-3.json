@@ -1,7 +1,7 @@
 {
     "model_name": "virtex-7",
     "speed_grades": [
-        "-3"
+        "#-3"
     ],
     "mmcm_f_in_min": 10.0,
     "mmcm_f_in_max": 1066.0,

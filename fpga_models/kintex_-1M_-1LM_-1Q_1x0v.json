@@ -1,9 +1,9 @@
 {
     "model_name": "kintex-7",
     "speed_grades": [
-        "-1M",
-        "-1LM",
-        "-1Q"
+        "#-1M",
+        "#-1LM",
+        "#-1Q"
     ],
     "voltage": "1.0V",
     "mmcm_f_in_min": 10.0,
