@@ -1,27 +1,16 @@
 from fpga_clk_attr import *
-import pathlib
+import pathlib, os
 from fpga_model import FPGAModel
 
 
-FPGA_MODEL_JSON_PATHS = [pathlib.Path(__file__).parent.joinpath("fpga_models", model)
-                         for model in
-                         ["dummy_fpga.json",
-                          "artix_-1_1x0v.json",
-                          "artix_-1LI_0x95v.json",
-                          "artix_-2_-2LE_1x0v.json",
-                          "artix_-2LE_0x9v.json",
-                          "artix_-3_1x0v.json",
-                          "kintex_-1_1x0v.json",
-                          "kintex_-1M_-1LM_-1Q_1x0v.json",
-                          "kintex_-2_-2LE_1x0v.json",
-                          "kintex_-2LE_0x9v.json",
-                          "kintex_-2LI_0x95v.json",
-                          "kintex_-3_1x0v.json",
-                          "virtex_-1M.json",
-                          "virtex_-1.json",
-                          "virtex_-2_-2L_-2G.json",
-                          "virtex_-3.json"]
-                         ]
+FPGA_MODEL_JSON_PATHS = [
+    pathlib.Path(__file__).parent.joinpath("fpga_models", model)
+    for model in [
+        file_name for file_name
+        in os.listdir(os.path.dirname(__file__) + "/fpga_models")
+        if file_name.endswith(".json")
+    ]
+]
 
 FPGA_MODELS = {identifier: model
                for model in [FPGAModel.from_json(path)

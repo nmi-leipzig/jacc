@@ -61,7 +61,9 @@ def main():
 def print_model_specifications() -> None:
     print("FPGA models with the following specifications are supported:")
     for key in FPGA_MODELS:
-        print(f"\t{key}")
+        # Exclude the dummy fpga because it is for tests only
+        if key != ("dummy", "dummy"):
+            print(f"\t{key}")
     sys.exit(0)
 
 
