@@ -1,6 +1,6 @@
 import argparse
 from fpga_model import FPGAModel
-from fpga_primitives import ClockPrimitive
+from fpga_primitives import ClockBlockConfiguration
 import sys
 
 arg_meta_information = [
@@ -148,7 +148,7 @@ def get_base_arg_parser(fpga_models: dict, program_name: str) -> argparse.Argume
     return parser
 
 
-def get_configuration_arg_parser(parent: argparse.ArgumentParser, fpga_model: FPGAModel, cmt_block: ClockPrimitive,
+def get_configuration_arg_parser(parent: argparse.ArgumentParser, fpga_model: FPGAModel, cmt_block: ClockBlockConfiguration,
                                  ) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(add_help=False, parents=[parent])
 

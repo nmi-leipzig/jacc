@@ -1,4 +1,4 @@
-from fpga_primitives import ClockPrimitive
+from fpga_primitives import ClockBlockConfiguration
 from fpga_model import FPGAModel
 from math import floor, ceil
 from operator import attrgetter
@@ -7,7 +7,7 @@ from utility import relative_error
 
 class ClockingConfigurator:
 
-    def __init__(self, fpga: FPGAModel, primitive: ClockPrimitive):
+    def __init__(self, fpga: FPGAModel, primitive: ClockBlockConfiguration):
         self.fpga = fpga
         self.primitive = primitive
         # Caching f_out_min and max since they will be used a lot (this reduces unnecessary calls and code duplicates)

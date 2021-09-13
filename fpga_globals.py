@@ -103,10 +103,10 @@ def get_clock_attributes(clock_primitive: str):
                                           additional_values=[1])
     }
 
-    if clock_primitive == "Plle2Base":
+    if clock_primitive == "PllBlockConfiguration":
         return {**clock_attributes_pll_and_mmcm, **clock_attributes_pll}
 
-    elif clock_primitive == "Mmcme2Base":
+    elif clock_primitive == "MmcmBlockConfiguration":
         return {**clock_attributes_pll_and_mmcm, **clock_attributes_mmcm}
 
     else:

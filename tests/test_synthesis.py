@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 import os
 from fpga_globals import FPGA_MODELS
-from fpga_primitives import Mmcme2Base, Plle2Base
+from fpga_primitives import MmcmBlockConfiguration, PllBlockConfiguration
 from fpga_configurator import ClockingConfigurator
 from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision
 import subprocess
@@ -223,16 +223,16 @@ class VivadoTest(unittest.TestCase):
         Sets two configurators, one for plle2base and one for mmcme2base, up for testing, using an artix model
         :return: None
         """
-        self.artix_mmcm_base_configurator = ClockingConfigurator(self.artix_model, Mmcme2Base.get_new_instance())
-        self.artix_pll_base_configurator = ClockingConfigurator(self.artix_model, Plle2Base.get_new_instance())
+        self.artix_mmcm_base_configurator = ClockingConfigurator(self.artix_model, MmcmBlockConfiguration.get_new_instance())
+        self.artix_pll_base_configurator = ClockingConfigurator(self.artix_model, PllBlockConfiguration.get_new_instance())
 
     def setup_kintex_configurators(self) -> None:
         """
         Sets two configurators, one for plle2base and one for mmcme2base, up for testing, using a kintex model
         :return: None
         """
-        self.kintex_mmcm_base_configurator = ClockingConfigurator(self.kintex_model, Mmcme2Base.get_new_instance())
-        self.kintex_pll_base_configurator = ClockingConfigurator(self.kintex_model, Plle2Base.get_new_instance())
+        self.kintex_mmcm_base_configurator = ClockingConfigurator(self.kintex_model, MmcmBlockConfiguration.get_new_instance())
+        self.kintex_pll_base_configurator = ClockingConfigurator(self.kintex_model, PllBlockConfiguration.get_new_instance())
 
     def test_synthesis_and_simulation_with_artix_model(self) -> None:
         self.setup_artix_configurators()

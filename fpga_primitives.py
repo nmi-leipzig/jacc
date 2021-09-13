@@ -4,7 +4,7 @@ from fpga_clk_attr import *
 
 
 @dataclass
-class ClockPrimitive(ABC):
+class ClockBlockConfiguration(ABC):
     bandwidth: ListAttribute
     ref_jitter1: IncrementRangeAttribute
     startup_wait: BoolAttribute
@@ -115,8 +115,8 @@ class ClockPrimitive(ABC):
         Attributes named m, d, (and o's) for all specializations of this class would be sufficient in theory
         But those variable names alone might be misleading.
         Therefore references are set on top of non-common values like:
-            Mmcme2Base.m <- Mmcme2Base.clkfbout_mult_f
-            Plle2Base.m <- Plle2Base.clkfbout_mult
+            MmcmBlockConfiguration.m <- MmcmBlockConfiguration.clkfbout_mult_f
+            PllBlockConfiguration.m <- PllBlockConfiguration.clkfbout_mult
         These naming conventions fit the Xilinx documents but a common value in the form of m does also exist.
         """
         pass
@@ -183,7 +183,7 @@ class ClockPrimitive(ABC):
 
 
 @dataclass
-class Plle2Base(ClockPrimitive):
+class PllBlockConfiguration(ClockBlockConfiguration):
     clkfbout_mult: IncrementRangeAttribute
     clkout0_divide: OutputDivider
 
@@ -247,11 +247,11 @@ class Plle2Base(ClockPrimitive):
 
     @classmethod
     def get_new_instance(cls):
-        return cls(**get_clock_attributes("Plle2Base"))
+        return cls(**get_clock_attributes("PllBlockConfiguration"))
 
 
 @dataclass
-class Mmcme2Base(ClockPrimitive):
+class MmcmBlockConfiguration(ClockBlockConfiguration):
     clkfbout_mult_f: IncrementRangeAttribute
     clkout4_cascade: BoolAttribute
     clkout0_divide_f: OutputDivider
@@ -393,4 +393,4 @@ class Mmcme2Base(ClockPrimitive):
 
     @classmethod
     def get_new_instance(cls):
-        return cls(**get_clock_attributes("Mmcme2Base"))
+        return cls(**get_clock_attributes("MmcmBlockConfiguration"))

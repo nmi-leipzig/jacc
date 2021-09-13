@@ -92,7 +92,7 @@ class ClockAttributeTest(unittest.TestCase):
         self.assertEqual(attribute.instantiate_template(), ".STARTUP_WAIT(TRUE)")
 
 
-# Test Cases for the most "complex" methods of the ClockPrimitive class family
+# Test Cases for the most "complex" methods of the ClockBlockConfiguration class family
 class ClockPrimitiveTest(unittest.TestCase):
     f_in_1 = 500
     mmcm_f_out_min = 4.69
@@ -101,8 +101,8 @@ class ClockPrimitiveTest(unittest.TestCase):
     pll_f_out_max = 800.0
     m = 30
     d = 10
-    mmcm = Mmcme2Base.get_new_instance()
-    pll = Plle2Base.get_new_instance()
+    mmcm = MmcmBlockConfiguration.get_new_instance()
+    pll = PllBlockConfiguration.get_new_instance()
 
     def test_clock_primitve_methods(self):
         # Test configure_approximated_o_dividers
@@ -133,10 +133,10 @@ class ClockPrimitiveTest(unittest.TestCase):
 # Test Cases for the get_clock_attributes function
 class AttributeListTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dict_pll = get_clock_attributes("Plle2Base")
-        self.temp_dict_mmcm = get_clock_attributes("Mmcme2Base")
+        self.temp_dict_pll = get_clock_attributes("PllBlockConfiguration")
+        self.temp_dict_mmcm = get_clock_attributes("MmcmBlockConfiguration")
 
-    # Test if all the necessary attributes for the Mmcme2Base are existent
+    # Test if all the necessary attributes for the MmcmBlockConfiguration are existent
     def test_mmcme2_base_attributes(self):
         for attribute_name in ["bandwidth", "clkfbout_mult_f", "clkfbout_phase", "clkin1_period", "clkout0_divide_f",
                                "clkout1_divide", "clkout2_divide", "clkout3_divide", "clkout4_divide", "clkout5_divide",
@@ -147,7 +147,7 @@ class AttributeListTest(unittest.TestCase):
                                "startup_wait"]:
             self.assertIn(attribute_name, self.temp_dict_mmcm)
 
-    # Test if all the necessary attributes for the Plle2Base are existent
+    # Test if all the necessary attributes for the PllBlockConfiguration are existent
     def test_plle2_base_attributes(self):
         for attribute_name in ["bandwidth", "clkfbout_mult", "clkfbout_phase", "clkin1_period",
                                "clkout0_divide",
@@ -168,7 +168,7 @@ class AttributeListTest(unittest.TestCase):
         self.assertEqual(self.temp_dict_pll["bandwidth"].value, "LOW")
 
         # Reset dictionary
-        self.temp_dict_pll = get_clock_attributes("Plle2Base")
+        self.temp_dict_pll = get_clock_attributes("PllBlockConfiguration")
         self.assertEqual(self.temp_dict_pll["bandwidth"].value, "OPTIMIZED")
 
 

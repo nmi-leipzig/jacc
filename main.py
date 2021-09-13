@@ -1,6 +1,6 @@
 from fpga_argparse import get_base_arg_parser, get_configuration_arg_parser
 from fpga_globals import FPGA_MODELS
-from fpga_primitives import Plle2Base, Mmcme2Base
+from fpga_primitives import PllBlockConfiguration, MmcmBlockConfiguration
 from fpga_configurator import ClockingConfigurator
 import sys
 
@@ -13,9 +13,9 @@ def main():
         print_model_specifications()
 
     if base_args.cmt_block.upper() == "PLL":
-        used_primitive = Plle2Base.get_new_instance()
+        used_primitive = PllBlockConfiguration.get_new_instance()
     elif base_args.cmt_block.upper() == "MMCM":
-        used_primitive = Mmcme2Base.get_new_instance()
+        used_primitive = MmcmBlockConfiguration.get_new_instance()
     else:
         # Should never happen unless theres a error in the code
         used_primitive = None

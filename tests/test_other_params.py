@@ -12,7 +12,7 @@ class OtherParameterTests(unittest.TestCase):
     def setUp(self) -> None:
         self.test_candidates = [ClockingConfigurator(FPGA_MODELS[primitive], model.get_new_instance())
                                 for primitive in self.model_keys
-                                for model in [fpga_primitives.Mmcme2Base, fpga_primitives.Plle2Base]
+                                for model in [fpga_primitives.MmcmBlockConfiguration, fpga_primitives.PllBlockConfiguration]
                                 ]
         for config in self.test_candidates:
             config.set_blank_selected_candidate()

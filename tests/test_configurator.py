@@ -15,9 +15,9 @@ class FrequencyConfigurationTest(unittest.TestCase):
         """
         self.fpga = FPGA_MODELS[("artix-7", "-3", "1.0V")]
 
-        # Create the Mmcme2Base and Plle2Base block
-        self.mmcme_2_base = Mmcme2Base.get_new_instance()
-        self.plle_2_base = Plle2Base.get_new_instance()
+        # Create the MmcmBlockConfiguration and PllBlockConfiguration block
+        self.mmcme_2_base = MmcmBlockConfiguration.get_new_instance()
+        self.plle_2_base = PllBlockConfiguration.get_new_instance()
 
     def after_frequency_setup(self):
         """
@@ -45,8 +45,8 @@ class FrequencyConfigurationTest(unittest.TestCase):
         But this does imply that only possible values are set through these tests
         """
         # Mmcm has basically all the features that pll has and will therefore be preferred here
-        configurator_mmcm = ClockingConfigurator(FPGA_MODELS[("artix-7", "-3", "1.0V")], Mmcme2Base.get_new_instance())
-        configuration = Mmcme2Base.get_new_instance()
+        configurator_mmcm = ClockingConfigurator(FPGA_MODELS[("artix-7", "-3", "1.0V")], MmcmBlockConfiguration.get_new_instance())
+        configuration = MmcmBlockConfiguration.get_new_instance()
         configuration.d.value = d
         configuration.d.on = True
         configuration.m.value = m
