@@ -390,7 +390,7 @@ class MmcmBlockConfiguration(ClockBlockConfiguration):
         temp_o = o_value if o_value is not None else self.o_list[index].value
         if not 0 <= index < self.output_clocks:
             raise ValueError(f"Index out of range, pll does not have f_out with index {index}")
-        # TODO make this more beatiful
+        # The fragment below could be improved by using the super() method
         if index == 4 and self.clkout4_cascade.on:
             return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
                    (self.divclk_divide.value * temp_o * self.o_list[6].value)
