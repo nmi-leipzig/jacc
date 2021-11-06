@@ -1,0 +1,10 @@
+.idea/
+.Xil/
+.gen/
+.srcs/
+otto.py
+__pycache__/
+tests/tcl/
+gunther.v
+usage_statistics_webtalk*
+.gitignore
