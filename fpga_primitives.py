@@ -1,5 +1,8 @@
+"""
+This modules contains classes that save the current state of a configuration.
+"""
 from fpga_globals import get_clock_attributes
-from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision
+from utility import frequency_to_period_ns_precision, period_to_frequency_mhz_precision, absolute_error
 from fpga_clk_attr import *
 
 
@@ -39,6 +42,7 @@ class ClockBlockConfiguration(ABC):
         self.o_list = None
         self.attributes = None
         self.output_clocks = None
+        self.delta_score = None
 
         # Set specification, m, d, o_list and attributes references
         self.initialize_multiplier_and_divider_references()
@@ -59,12 +63,11 @@ class ClockBlockConfiguration(ABC):
                 in range(self.output_clocks)
                 if self.o_list[index].on}
 
-    def get_properties_dict(self):
+    def get_properties_dict(self) -> dict:
         return {attr.name: attr.value for attr in self.attributes if attr.on}
 
     def get_output_frequency(self, index: int, o_value=None) -> float:
         """
-        :param after_rounding: Rounding present in generated verilog files is considered if this is True
         :param index: index of the output frequency slot
         :param o_value: Only used if frequency is calculated before setting the value
         """
@@ -176,6 +179,69 @@ class ClockBlockConfiguration(ABC):
 
         return True
 
+    def set_delta_score(self, output_frequencies: dict, phase_shifts: dict, use_relative_error: bool = False) -> None:
+        """
+        Gives the configuration a score based on the sum of the relative errors
+        :param use_relative_error:
+        :param use_absolute_error:
+        :param output_frequencies: Target output frequencies that are about to be compared with the produced frequencies
+        :param phase_shifts: Target phase shifts that are about to be compared with the produced phase shifts
+        :return: None
+        """
+
+        # Add relative error if demanded
+        if use_relative_error:
+            # Get the sum of all relative frequency errors of this configuration
+            frequency_sum = sum([relative_error(target_value, self.get_output_frequency(index))
+                                 for index, target_value in output_frequencies.items()])
+
+            # Get the sum of all relative phase shift error of this configuration
+            phase_shift_sum = sum([relative_error(target_value, self.get_phase_shift(index).value)
+                                   for index, target_value in phase_shifts.items()])
+
+            # Another sum for the duty cycles could be added here if they were implemented
+
+            # Calculate the score
+            # This score assumes that phase shifts are less important than output frequencies,
+            # by giving their errors a lower weight
+            self.delta_score = frequency_sum * 2 + phase_shift_sum
+
+        else:
+            # Get the sum of all relative frequency errors of this configuration
+            frequency_sum = sum([absolute_error(target_value, self.get_output_frequency(index))
+                                 for index, target_value in output_frequencies.items()])
+
+            # Get the sum of all relative phase shift error of this configuration
+            phase_shift_sum = sum([absolute_error(target_value, self.get_phase_shift(index).value)
+                                   for index, target_value in phase_shifts.items()])
+
+            # Another sum for the duty cycles could be added here if they were implemented
+
+            # Calculate the score
+            # This score assumes that phase shifts are less important than output frequencies,
+            # by giving their errors a lower weight
+            self.delta_score = frequency_sum * 2 + phase_shift_sum
+
+    def get_result_presentation(self, clock_six_used: bool = True) -> str:
+        """
+        :param clock_six_used: placeholder parameter for mmcm child class
+        :return: A string that shows the frequencies, phase shifts etc. that will be synthesized by this configuration
+        """
+
+        frequency_ps_string = "\n".join([
+            f"clkout{i} frequency: {self.get_output_frequency(i)}\n" \
+            f"clkout{i} phase shift: {self.get_phase_shift(i).value}\n"
+            for i, output_divider in enumerate(self.o_list)
+            if output_divider.on and (i != 6 or i == 6 and clock_six_used)
+        ])
+
+        other_str = "\n"
+        other_str += f"reference jitter1: {self.ref_jitter1.value}\n" if self.ref_jitter1.on else ""
+        other_str += f"bandwidth: {self.bandwidth.value}\n"
+        other_str += f"startup wait: {self.startup_wait.value}\n"
+
+        return frequency_ps_string + other_str
+
     @classmethod
     @abstractmethod
     def get_new_instance(cls):
@@ -190,7 +256,8 @@ class PllBlockConfiguration(ClockBlockConfiguration):
     output_clocks = 6
 
     def __str__(self) -> str:
-        attr_strings = [attr.instantiate_template() for attr in self.attributes if attr.on]
+        attr_strings = [attr.instantiate_template() for attr in self.attributes
+                        if attr.on and attr.value != attr.default_value]
 
         return "\tPLLE2_BASE #(\n\t\t" + ",\n\t\t".join(attr_strings) + "\n\t)\n"
 
@@ -214,18 +281,18 @@ class PllBlockConfiguration(ClockBlockConfiguration):
                "\n\n\t//Here could be your code for wires and input buffers" \
                f"\n\n{self.__str__()}" \
                "\tPLLE2_BASE_inst(" \
-               "\n\t\t.CLKOUT0\t(clkout0)," \
-               "\n\t\t.CLKOUT1\t(clkout1)," \
-               "\n\t\t.CLKOUT2\t(clkout2)," \
-               "\n\t\t.CLKOUT3\t(clkout3)," \
-               "\n\t\t.CLKOUT4\t(clkout4)," \
-               "\n\t\t.CLKOUT5\t(clkout5)," \
-               "\n\t\t.CLKFBOUT\t(clkfbout)," \
-               "\n\t\t.LOCKED\t(locked)," \
-               "\n\t\t.CLKIN1\t(clkin1)," \
-               "\n\t\t.PWRDWN\t(pwrdwn)," \
-               "\n\t\t.RST\t(rst)," \
-               "\n\t\t.CLKFBIN\t(clkfbin)" \
+               "\n\t\t.CLKOUT0(clkout0)," \
+               "\n\t\t.CLKOUT1(clkout1)," \
+               "\n\t\t.CLKOUT2(clkout2)," \
+               "\n\t\t.CLKOUT3(clkout3)," \
+               "\n\t\t.CLKOUT4(clkout4)," \
+               "\n\t\t.CLKOUT5(clkout5)," \
+               "\n\t\t.CLKFBOUT(clkfbout)," \
+               "\n\t\t.LOCKED(locked)," \
+               "\n\t\t.CLKIN1(clkin1)," \
+               "\n\t\t.PWRDWN(pwrdwn)," \
+               "\n\t\t.RST(rst)," \
+               "\n\t\t.CLKFBIN(clkfbin)" \
                "\n\t);" \
                "\n\n\t//Here could be your code for wires and output buffers" \
                "\n\nendmodule"
@@ -293,31 +360,30 @@ class MmcmBlockConfiguration(ClockBlockConfiguration):
                "\n\n\t//Here could be your code for wires and input buffers" \
                f"\n\n{self.__str__()}" \
                "\tMMCME2_BASE_inst(" \
-               "\n\t\t.CLKOUT0\t(clkout0)," \
-               "\n\t\t.CLKOUT0B\t(clkout0b)," \
-               "\n\t\t.CLKOUT1\t(clkout1)," \
-               "\n\t\t.CLKOUT1B\t(clkout1b)," \
-               "\n\t\t.CLKOUT2\t(clkout2)," \
-               "\n\t\t.CLKOUT2B\t(clkout2b)," \
-               "\n\t\t.CLKOUT3\t(clkout3)," \
-               "\n\t\t.CLKOUT3B\t(clkout3b)," \
-               "\n\t\t.CLKOUT4\t(clkout4)," \
-               "\n\t\t.CLKOUT5\t(clkout5)," \
-               "\n\t\t.CLKOUT6\t(clkout6)," \
-               "\n\t\t.CLKFBOUT\t(clkfbout)," \
-               "\n\t\t.CLKFBOUTB\t(clkboutb)," \
-               "\n\t\t.LOCKED\t(locked)," \
-               "\n\t\t.CLKIN1\t(clkin1)," \
-               "\n\t\t.PWRDWN\t(pwrdwn)," \
-               "\n\t\t.RST\t(rst)," \
-               "\n\t\t.CLKFBIN\t(clkfbin)" \
+               "\n\t\t.CLKOUT0(clkout0)," \
+               "\n\t\t.CLKOUT0B(clkout0b)," \
+               "\n\t\t.CLKOUT1(clkout1)," \
+               "\n\t\t.CLKOUT1B(clkout1b)," \
+               "\n\t\t.CLKOUT2(clkout2)," \
+               "\n\t\t.CLKOUT2B(clkout2b)," \
+               "\n\t\t.CLKOUT3(clkout3)," \
+               "\n\t\t.CLKOUT3B(clkout3b)," \
+               "\n\t\t.CLKOUT4(clkout4)," \
+               "\n\t\t.CLKOUT5(clkout5)," \
+               "\n\t\t.CLKOUT6(clkout6)," \
+               "\n\t\t.CLKFBOUT(clkfbout)," \
+               "\n\t\t.CLKFBOUTB(clkboutb)," \
+               "\n\t\t.LOCKED(locked)," \
+               "\n\t\t.CLKIN1(clkin1)," \
+               "\n\t\t.PWRDWN(pwrdwn)," \
+               "\n\t\t.RST(rst)," \
+               "\n\t\t.CLKFBIN(clkfbin)" \
                "\n\t);" \
                "\n\n\t//Here could be your code for wires and output buffers" \
                "\n\nendmodule"
 
     def get_output_frequency(self, index: int, o_value=None) -> float:
         """
-        :param after_rounding: Rounding present in generated verilog files is considered if this is True
         :param index: index of the output frequency slot
         :param o_value: Only used if frequency is calculated before setting the value
         """
@@ -327,7 +393,7 @@ class MmcmBlockConfiguration(ClockBlockConfiguration):
         # TODO make this more beatiful
         if index == 4 and self.clkout4_cascade.on:
             return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
-                       (self.divclk_divide.value * temp_o * self.o_list[6].value)
+                   (self.divclk_divide.value * temp_o * self.o_list[6].value)
         else:
             return self.m.value * period_to_frequency_mhz_precision(self.clkin1_period.value) / \
                    (self.divclk_divide.value * temp_o)
@@ -390,6 +456,12 @@ class MmcmBlockConfiguration(ClockBlockConfiguration):
             return None
 
         return target_divider.value
+
+    def get_result_presentation(self, clock_six_used: bool = True) -> str:
+        string_with_clk4cascade = super().get_result_presentation(clock_six_used) + \
+                                  f"clock 4 cascade: {self.clkout4_cascade.value}\n"
+
+        return string_with_clk4cascade
 
     @classmethod
     def get_new_instance(cls):

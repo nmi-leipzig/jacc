@@ -1,3 +1,6 @@
+"""
+Test the configuration process/calculation
+"""
 import unittest
 from fpga_primitives import *
 from fpga_globals import FPGA_MODELS
@@ -13,7 +16,7 @@ class FrequencyConfigurationTest(unittest.TestCase):
         """
         A manually called replacement for setUp that is called before tests for configure_frequency_parameters
         """
-        self.fpga = FPGA_MODELS[("artix-7", "-3", "1.0V")]
+        self.fpga = FPGA_MODELS[("artix-7", "3", "1.0V")]
 
         # Create the MmcmBlockConfiguration and PllBlockConfiguration block
         self.mmcme_2_base = MmcmBlockConfiguration.get_new_instance()
@@ -45,7 +48,7 @@ class FrequencyConfigurationTest(unittest.TestCase):
         But this does imply that only possible values are set through these tests
         """
         # Mmcm has basically all the features that pll has and will therefore be preferred here
-        configurator_mmcm = ClockingConfigurator(FPGA_MODELS[("artix-7", "-3", "1.0V")], MmcmBlockConfiguration.get_new_instance())
+        configurator_mmcm = ClockingConfigurator(FPGA_MODELS[("artix-7", "3", "1.0V")], MmcmBlockConfiguration.get_new_instance())
         configuration = MmcmBlockConfiguration.get_new_instance()
         configuration.d.value = d
         configuration.d.on = True
@@ -299,27 +302,6 @@ class FrequencyConfigurationTest(unittest.TestCase):
             self.assertAlmostEqual(confi.get_phase_shift(1).value, o1_phase_shift[i],
                                    delta=abs(o1_deltas[i] * o1_phase_shift[i]))
 
-    def test_candidate_selection(self):
-        """
-        Tests the "select_candidate" method
-        :return: None
-        """
-        self.after_frequency_setup()
-
-        # Putting mmcm and pll into a list in order to reduce duplicate code a little
-        for configurator in [self.configurator_mmcm, self.configurator_pll]:
-            candidate = configurator.select_candidate()
-            for config in configurator.configuration_candidates:
-                # Check that relative error between m_ideal and m of the candidate is leq than relative error between
-                # m_ideal and m of the config
-                m_ideal = configurator.get_m_ideal()
-                self.assertLessEqual(relative_error(m_ideal, candidate.m.value),
-                                     relative_error(m_ideal, config.m.value))
-
-                if candidate.m.value == config.m.value:
-                    # Also check that D of the candidate is smaller compared to "config" in case of equal M values
-                    self.assertLessEqual(candidate.d.value, config.d.value)
-
     def test_configure_primitive(self):
         """
         Tests the "configure_primitive" method
@@ -391,7 +373,7 @@ class FrequencyConfigurationTest(unittest.TestCase):
                                        delta=d["duty_cycle_args"][f"delta_{index}"] * d["duty_cycle_args"][key])
             '''
 
-    def test_configure_primitive_like_vivado(self):
+    def test_configure_primitive_with_auto_delta(self):
         """
         Tests the method "configure_primitive_like_vivado.
         Test is similar to "test_configure_primitive" but deltas are now automatically generated
@@ -428,9 +410,8 @@ class FrequencyConfigurationTest(unittest.TestCase):
 
         for d in [mmcm_dict, pll_dict]:
             configurator = ClockingConfigurator(d["fpga"], d["primitive"])
-            configurator.configure_primitive_like_vivado(d["frequency_args"], d["phase_shift_args"],
-                                                         # d["duty_cycle_args"],
-                                                         d["other_args"])
+            configurator.configure_primitive(d["frequency_args"], d["phase_shift_args"], # d["duty_cycle_args"],
+                                            d["other_args"])
             config = configurator.selected_candidate
             self.assertIsNotNone(config)
 

@@ -5,7 +5,7 @@ from fpga_globals import FPGA_MODELS
 
 
 class OtherParameterTests(unittest.TestCase):
-    model_keys = [('artix-7', '#-2LE', '0.9V'), ('kintex', '#-2', '1.0V'), ('virtex-7', '-2')]
+    model_keys = [('artix-7', '2LE', '0.9V'), ('kintex', '2', '1.0V'), ('virtex-7', '2')]
     bandwidths = ["OPTIMIZED", "HIGH", "LOW"]
     ref_jitters = [0.0, 0.5, 0.999]
 
@@ -15,7 +15,7 @@ class OtherParameterTests(unittest.TestCase):
                                 for model in [fpga_primitives.MmcmBlockConfiguration, fpga_primitives.PllBlockConfiguration]
                                 ]
         for config in self.test_candidates:
-            config.set_blank_selected_candidate()
+            config.set_blank_candidate()
 
     def test_blank(self):
         for config in self.test_candidates:

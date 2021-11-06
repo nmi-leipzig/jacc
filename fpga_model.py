@@ -1,3 +1,6 @@
+"""
+This module conatains only the FPGAModel class.
+"""
 import json
 import sys
 from dataclasses import dataclass
@@ -5,7 +8,10 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class FPGAModel:
-
+    """
+    Class that saves the technical limitations of one fpga model.
+    Should be initialized from json.
+    """
     mmcm_f_in_min: float
     mmcm_f_in_max: float
     mmcm_f_out_min: float

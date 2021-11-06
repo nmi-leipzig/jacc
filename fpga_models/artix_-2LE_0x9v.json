@@ -1,7 +1,7 @@
 {
     "model_name": "artix-7",
     "speed_grades": [
-        "#-2LE"
+        "2LE"
     ],
     "voltage": "0.9V",
     "mmcm_f_in_min": 10.0,

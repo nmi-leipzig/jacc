@@ -1,3 +1,6 @@
+"""
+Test the created class hierarchy
+"""
 import unittest
 from fpga_primitives import *
 from fpga_globals import get_clock_attributes
@@ -41,7 +44,7 @@ class ClockAttributeTest(unittest.TestCase):
             self.assertEqual(attribute.value, value)
 
         # Test template
-        self.assertEqual(attribute.instantiate_template(), ".CLKIN1_PERIOD(26.500)")
+        self.assertEqual(attribute.instantiate_template(), ".CLKIN1_PERIOD(26.5)")
 
     def test_increment_range_attribute(self):
         # Setup
@@ -89,7 +92,7 @@ class ClockAttributeTest(unittest.TestCase):
         self.assertTrue(attribute.value)
 
         # Test template
-        self.assertEqual(attribute.instantiate_template(), ".STARTUP_WAIT(TRUE)")
+        self.assertEqual(attribute.instantiate_template(), ".STARTUP_WAIT(\"TRUE\")")
 
 
 # Test Cases for the most "complex" methods of the ClockBlockConfiguration class family

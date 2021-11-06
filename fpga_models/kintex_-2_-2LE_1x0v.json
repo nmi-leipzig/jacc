@@ -1,8 +1,8 @@
 {
     "model_name": "kintex",
     "speed_grades": [
-        "#-2",
-        "#-2LE"
+        "2",
+        "2LE"
     ],
     "voltage": "1.0V",
     "mmcm_f_in_min": 10.0,

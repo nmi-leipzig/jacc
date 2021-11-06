@@ -1,3 +1,6 @@
+"""
+Tests for utility functions
+"""
 import unittest
 from utility import *
 
@@ -18,3 +21,9 @@ class UtilityTests(unittest.TestCase):
         self.assertEqual(relative_error(100, -37), 1.37)
         self.assertEqual(relative_error(50, 22), 28/50)
         self.assertEqual(relative_error(-50, 22), 72/50)
+
+    def test_absolute_error(self):
+        self.assertEqual(absolute_error(800, 750), 50)
+        self.assertEqual(absolute_error(750, 800), 50)
+        self.assertEqual(absolute_error(-150, 750), 900)
+        self.assertEqual(absolute_error(800, 800), 0)

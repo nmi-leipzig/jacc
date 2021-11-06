@@ -1,3 +1,6 @@
+"""
+This module contaisn all the necessary arg parsing of jacc.
+"""
 import argparse
 from fpga_model import FPGAModel
 from fpga_primitives import ClockBlockConfiguration
@@ -15,6 +18,11 @@ arg_meta_information = [
         "help": "Shows all supported fpga models and exit"
     },
     {
+        "short_flag": "-re",
+        "flag": "--use_relative_error_only_for_scoring",
+        "help": "Activates the use of relative errors instead absoulte errors for scoring."
+    },
+    {
         "short_flag": "-model",
         "flag": "--fpga_model_specification",
         "input": "<7-series model> <speed grade> [<voltage>]",
@@ -25,13 +33,6 @@ arg_meta_information = [
         "flag": "--cmt_block",
         "input": "{mmcm, pll, MMCM, PLL}",
         "help": "Specifies the desired clock management tile block."
-    },
-    {
-        "short_flag": "-autod",
-        "flag": "--automatic_deltas",
-        "help": "Makes the script automatically determine all delta values.\n"
-                "\tBehaves similar to the Vivado clocking wizard.\n"
-                "\tNote: Delta values provided by the user will be ignored."
     },
     {
         "short_flag": "-fin1",
@@ -53,7 +54,7 @@ arg_meta_information = [
         "flag": "--frequency_delta_<0-6>",
         "input": "<output frequency delta value>",
         "help": "Specifies the highest allowed relative error between desired fout<0-6> and actual fout<0-6>.\n"
-                "\tNote: Values > 0 are allowed.\n"
+                "\tNote: Only values > 0 are allowed.\n"
                 "\tE.g: 0.5 allows an error of up to 50% of the desired value."
 
     },
@@ -63,6 +64,14 @@ arg_meta_information = [
         "input": "<phase shift>",
         "help": "Specifies desired phase shift for the output clock <1-7> in degree.\n"
                 "\tValues from -360 to 360 are possible."
+    },
+    {
+        "short_flag": "-psdelta<0-6>",
+        "flag": "--phase_shift_delta_<0-6>",
+        "input": "<phase shift delta value>",
+        "help": "Specifies the highest allowed relative error between desired ps<0-6> and actual phase shift.\n"
+                "\tNote: Only values > 0 are allowed.\n"
+                "\tE.g: 0.5 allows an error of up to 50% of the desired value."
     },
     {
         "short_flag": "-sw",
@@ -126,15 +135,15 @@ def get_base_arg_parser(fpga_models: dict, program_name: str) -> argparse.Argume
 
     # Argument that lets you enter technical specifications about your fpga model
     # A custom action Class is used for this argument
-    parser.add_argument("-model", "--fpga_model_specification", nargs="+", default=("artix-7", "#-3", "1.0V"),
+    parser.add_argument("-model", "--fpga_model_specification", nargs="+", default=("artix-7", "3", "1.0V"),
                         action=verify_technical_specification(fpga_models)
                         )
 
     # Argument that allows choice between PLL and MMCM
     parser.add_argument("-cmtb", "--cmt_block", type=str, choices=["mmcm", "pll", "MMCM", "PLL"], default="MMCM")
 
-    # Argument that allows to specify whether or not the script should choose the deltas automatically
-    parser.add_argument("-autod", "--automatic_deltas", action="store_true")
+    # Optional Argument for configuration score
+    parser.add_argument("-re", "--use_relative_error_only_for_scoring", action="store_true")
 
     # Argument that mutes console output
     parser.add_argument("-q", "--quiet", action="store_true")
@@ -222,6 +231,12 @@ def generate_help_string(arg_meta_information: list, program_name: str) -> str:
 
 # Code modeled after: https://stackoverflow.com/a/4195302
 def verify_technical_specification(fpga_models: dict) -> argparse.Action:
+    """
+    Some function that verifies the integrity of a fpga model specified by the user
+    Code modeled after: https://stackoverflow.com/a/4195302
+    :param fpga_models: Dictionary of all supported fpga models
+    :return: ModelVerifier
+    """
     class ModelVerifier(argparse.Action):
         def __call__(self, parser, args, values, option_string=None):
             length = len(values)
@@ -238,7 +253,9 @@ def verify_technical_specification(fpga_models: dict) -> argparse.Action:
                     msg2 = f"\tvoltage: {values[2]}\n"
                 else:
                     msg2 = ""
-                msg3 = "\nUse the optional argument \"--show_models\" to display all models available"
+                msg3 = "\nUse the optional argument \"--show_models\" to display all models available\n" + \
+                       "FPGA Models have to entered as strings and different arguments like this:\n" \
+                       "\t-model \"artix-7\" \"3\" \"1.0V\""
                 print(msg1 + msg2 + msg3)
                 sys.exit(1)
             else:
@@ -250,6 +267,9 @@ def verify_technical_specification(fpga_models: dict) -> argparse.Action:
 def verify_range(start: float, end: float, specification: str = None) -> argparse.Action:
     class RangeVerifier(argparse.Action):
         def __call__(self, parser, args, values, option_string=None):
+            if values is None:
+                print(f"error: argument {self.dest}: expected at least one argument.")
+                sys.exit(1)
             if float(values) < start or (end != "+" and float(values) > end):
                 if specification is not None:
                     string_part = f" allowed with {specification} in usage."

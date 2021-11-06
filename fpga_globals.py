@@ -1,3 +1,8 @@
+"""
+This module contains global values that are used by other modules of jacc.
+Most of these are here because of separation of concerns.
+They would pollute other modules by making them less readable, if they were defined at other places.
+"""
 from fpga_clk_attr import *
 import pathlib, os
 from fpga_model import FPGAModel
@@ -22,7 +27,6 @@ def get_clock_attributes(clock_primitive: str):
     clock_attributes_pll_and_mmcm = {
         "bandwidth": ListAttribute("BANDWIDTH", "OPTIMIZED", ".BANDWIDTH(@value@)", ["OPTIMIZED", "HIGH", "LOW"]),
 
-        # TODO LOOK UP digits
         "ref_jitter1": RangeAttribute("REF_JITTER1", 0.010, ".REF_JITTER1(@value@)", 0.0, 0.999, 3),
 
         "startup_wait": BoolAttribute("STARTUP_WAIT", False, ".STARTUP_WAIT(@value@)"),
@@ -57,7 +61,6 @@ def get_clock_attributes(clock_primitive: str):
         "clkout5_duty_cycle": IncrementRangeAttribute("CLKOUT5_DUTY_CYCLE", 0.5, ".CLKOUT5_DUTY_CYCLE(@value@)", 0.001,
                                                       0.999, 3, None),
 
-        # TODO verify phase sig digit
         "clkout0_phase": IncrementRangeAttribute("CLKOUT0_PHASE", 0.0, ".CLKOUT0_PHASE(@value@)", -360.0, 360.0, 3, None),
 
         "clkout1_phase": IncrementRangeAttribute("CLKOUT1_PHASE", 0.0, ".CLKOUT1_PHASE(@value@)", -360.0, 360.0, 3, None),
