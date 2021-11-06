@@ -3,12 +3,12 @@
 
 ## Introduction
 
-JACC is an open source clocking configurator generator for 7 series fpgas.<br/>
+JACC is an open source clocking configuration generator for 7 series fpgas.<br/>
 
 Only "base" features are currently supported, see Xilinx' [MMCME2_BASE](https://www.xilinx.com/support/documentation/sw_manuals/xilinx14_7/7series_hdl.pdf#1225157649) and [PLLE2_BASE](https://www.xilinx.com/support/documentation/sw_manuals/xilinx14_7/7series_hdl.pdf#1225168170) documentation.<br/>
 
 Spartan-7 models are currently not supported.<br/>
-All supported FPGA models can be read by calling jacc with the -sm argument.<br/>
+All supported fpga models can be read by calling jacc with the -sm argument.<br/>
 
 
 ## Usage
@@ -22,7 +22,7 @@ Getting a list of all existing arguments:
     python jacc.py -h
 ```  
 
-Getting a list of all supported FPGA models:
+Getting a list of all supported fpga models:
 ```
     python jacc.py -sm
 ```  
@@ -43,8 +43,9 @@ JACC has some extra features that are not known to be supported by Xilinx' Vivad
 
 ### Divider Cascade
 
-7-Series fpga mmcm blocks have an attribute called CLKOUT4_CASCADE.<br/>
-This attribute can be used to use the product of the clock dividers 4 and 6 on the clock signal 4.<br/>
+7 series fpga mmcm blocks have an attribute called **CLKOUT4_CASCADE**.<br/>
+Using this attribute will let the clock 4 signal be divided by the product of the clock dividers 4 and 6.<br/>
+See Xilinx' [documentation](https://www.xilinx.com/support/documentation/user_guides/ug472_7Series_Clocking.pdf#G6.274377) more information.
 
 #### Example Usage
 
@@ -57,8 +58,8 @@ clock 2 frequency: 4.69 MHz<br/>
 <br/>
 Clock 2s frequency is very low compared to clock 0 and 1.<br/>
 This will lead to some unrequested deviation on clock 2.<br/>
-The Divider Cascade feature can be used in this case in order to reduce the deviation on clock 4.<br/>
-To do this the low frequency clock has to be put on clock 4 and the -clk4c argument has to be used.<br/>
+The Divider Cascade feature can be used in this case in order to reduce the deviation on clock 2.<br/>
+To do this the low frequency clock has to be put on port 4 instead of port 2 and the **-clk4c** argument has to be used.<br/>
 Example call:
 ```
     python jacc.py -fin1 400 -fout0 750 -fout1 800 -fout4 4.69 -clk4c
@@ -66,33 +67,33 @@ Example call:
 
 ### Max Delta Values
 
-Some clock frequencies may be considered more important than others by the user.<br/>
+Users may consider some frequencies more important than others.<br/>
 A user can specify the amount of deviation he allows for a specific requested value.<br/>
 This deviation amount is specified as a percentage (in decimal notation).<br/>
 The default value is 0.5 (50%) and is used if the user specifies no other value.<br/>
 <br/>
 #### Example Usage
 
-Consider the following configuration with is targeted:<br/>
+Consider the following configuration is targeted:<br/>
 <br/>
 input frequency: 400 MHz<br/>
-clock 0 frequency: 113 MHz  with an allowed deviation of 2%<br/>
-clock 1 frequency: 457 MHz  with an allowed deviation of 5%<br/>
-clock 2 frequency: 15 MHz  with an allowed deviation of 80%<br/>
+clock 0 frequency: 113 MHz  (with an allowed deviation of 2%)<br/>
+clock 1 frequency: 457 MHz  (with an allowed deviation of 5%)<br/>
+clock 2 frequency: 15 MHz  (with an allowed deviation of 80%)<br/>
 <br/>
-The following example would lead to a desired configuration:
+The following example would lead to a desirable configuration:
 ```
     python jacc.py -fin1 100 -fout0 113 -fout1 457 -fout2 800 -fdelta0 0.02 -fdelta1 0.05 -fdelta2 0.8
 ```
 Not specifying user dependant deltas would lead to a different result with more error on clock 0 and 1.<br/>
 
 ###### Note:
-JACC will always choose the "best" configuration of a list of considered configuration.<br/>
-This means that specifying 100% allowed deviation for all clocks leads in most cases to the same result as specifying 90% allowed deviations for all clocks.<br/>
+JACC will always choose the "best" configuration out of a list of considered configurations.<br/>
+This means that specifying 100% allowed deviation on all clocks leads in most cases to the same result as specifying 90% allowed deviation on all clocks.<br/>
 The fitness of a configuration is chosen according to a scoring system.<br/>
 There are two scoring methods based on relative or absolute deviations.<br/>
 The absolute error deviations are used by default.<br/>
-Use the -re argument to consider relative errors instead of absolute errors:
+Use the **-re** argument to consider relative errors instead of absolute errors:
 ```
     python jacc.py -fin1 100 -fout0 113 -fout1 457 -re
 ```
