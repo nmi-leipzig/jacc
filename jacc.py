@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 This module contains the 'main.py' of jacc.
 It is quite messy and could need an upgrade.
